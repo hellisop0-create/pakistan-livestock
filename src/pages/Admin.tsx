@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { collection, query, onSnapshot, doc, updateDoc, deleteDoc, getDocs, where } from 'firebase/firestore';
+import { collection, onSnapshot, doc, updateDoc } from 'firebase/firestore';
 import { db } from '../firebase';
 import { useAuth } from '../AuthContext';
 import { Ad, User, Transaction } from '../types';
-import { CheckCircle, XCircle, Shield, Users, FileText, CreditCard, Search, ExternalLink, Trash2, ShieldCheck, AlertCircle } from 'lucide-react';
+import { CheckCircle, XCircle, Shield, Users, FileText, CreditCard, ExternalLink, ShieldCheck, AlertCircle, Lock } from 'lucide-react';
 import { formatPrice, cn } from '../lib/utils';
 import { toast } from 'sonner';
 import { Link } from 'react-router-dom';
@@ -16,8 +16,16 @@ export default function Admin() {
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<'ads' | 'users' | 'payments'>('ads');
 
+  // --- NEW AUTHENTICATION STATE ---
+  const [isUnlocked, setIsUnlocked] = useState(false);
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [authError, setAuthError] = useState('');
+
   useEffect(() => {
-    if (!isAdmin) return;
+    // Only fetch data if the panel is unlocked AND the user is a Firebase Admin
+    // (Or just check isUnlocked if you want to bypass the Firebase isAdmin check)
+    if (!isUnlocked) return;
 
     const unsubAds = onSnapshot(collection(db, 'ads'), (snapshot) => {
       setAds(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Ad)));
@@ -37,15 +45,72 @@ export default function Admin() {
       unsubUsers();
       unsubTrans();
     };
-  }, [isAdmin]);
+  }, [isUnlocked]);
 
-  if (!isAdmin) {
+  const handleAdminLogin = (e: React.FormEvent) => {
+    e.preventDefault();
+    // SET YOUR DESIRED CREDENTIALS HERE
+    if (email === "zaheerhussainhussain16@gmail.com" && password === "admin1234") {
+      setIsUnlocked(true);
+      setAuthError('');
+      toast.success('Dashboard Unlocked');
+    } else {
+      setAuthError('Invalid administrator credentials');
+      toast.error('Access Denied');
+    }
+  };
+
+  // --- LOGIN UI GATE ---
+  if (!isUnlocked) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <div className="text-center">
-          <Shield className="w-20 h-20 text-red-500 mx-auto mb-6" />
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">Access Denied</h1>
-          <p className="text-gray-600">You do not have administrative privileges.</p>
+      <div className="min-h-screen flex items-center justify-center bg-gray-50 px-4">
+        <div className="max-w-md w-full bg-white rounded-3xl shadow-xl p-8 border border-gray-200">
+          <div className="text-center mb-8">
+            <div className="bg-green-100 w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-4">
+              <Lock className="w-8 h-8 text-green-700" />
+            </div>
+            <h2 className="text-2xl font-bold text-gray-900">Admin Access</h2>
+            <p className="text-gray-500 text-sm mt-2">Enter credentials to manage CITYCARE</p>
+          </div>
+
+          <form onSubmit={handleAdminLogin} className="space-y-4">
+            <div>
+              <label className="block text-sm font-bold text-gray-700 mb-1">Email</label>
+              <input 
+                type="email" 
+                className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-green-500 outline-none transition-all"
+                placeholder="admin@citycare.com"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                required
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-bold text-gray-700 mb-1">Password</label>
+              <input 
+                type="password" 
+                className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-green-500 outline-none transition-all"
+                placeholder="••••••••"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                required
+              />
+            </div>
+            
+            {authError && (
+              <div className="flex items-center text-red-600 text-sm font-medium bg-red-50 p-3 rounded-lg">
+                <AlertCircle className="w-4 h-4 mr-2" />
+                {authError}
+              </div>
+            )}
+
+            <button 
+              type="submit"
+              className="w-full bg-green-700 hover:bg-green-800 text-white font-bold py-3 rounded-xl shadow-lg transition-all transform active:scale-[0.98]"
+            >
+              Unlock Dashboard
+            </button>
+          </form>
         </div>
       </div>
     );
@@ -82,10 +147,18 @@ export default function Admin() {
     <div className="min-h-screen bg-gray-50 py-12">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between mb-12">
-          <h1 className="text-3xl font-bold text-gray-900 flex items-center">
-            <Shield className="w-8 h-8 mr-3 text-green-700" />
-            Admin Dashboard
-          </h1>
+          <div className="flex items-center">
+            <h1 className="text-3xl font-bold text-gray-900 flex items-center">
+              <Shield className="w-8 h-8 mr-3 text-green-700" />
+              Admin Dashboard
+            </h1>
+            <button 
+              onClick={() => setIsUnlocked(false)} 
+              className="ml-4 text-xs bg-gray-200 hover:bg-gray-300 px-3 py-1 rounded-full text-gray-600 transition-colors"
+            >
+              Lock Panel
+            </button>
+          </div>
           <div className="flex space-x-4">
             <div className="bg-white px-6 py-3 rounded-2xl shadow-sm border border-gray-200 text-center">
               <div className="text-xs text-gray-500 font-bold uppercase tracking-wider">Total Ads</div>
@@ -151,7 +224,7 @@ export default function Admin() {
                     <tr key={ad.id} className="hover:bg-gray-50/50">
                       <td className="px-6 py-4">
                         <div className="flex items-center space-x-3">
-                          <img src={ad.images[0]} alt="" className="w-12 h-12 rounded-lg object-cover" />
+                          <img src={ad.images?.[0]} alt="" className="w-12 h-12 rounded-lg object-cover" />
                           <div>
                             <div className="font-bold text-gray-900">{ad.title}</div>
                             <div className="text-xs text-gray-500">{ad.category} • {ad.city}</div>

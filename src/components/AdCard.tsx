@@ -27,55 +27,49 @@ const AdCard: React.FC<AdCardProps> = ({ ad, isFavorite, onToggleFavorite }) => 
     >
       <Link to={`/ad/${ad.id}`} className="block">
         {/* Image Container */}
-        <div className="relative aspect-[4/3] overflow-hidden bg-gray-100">
-          <img
-            src={ad.images[0] || 'https://picsum.photos/seed/livestock/400/300'}
-            alt={ad.title}
-            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-            referrerPolicy="no-referrer"
-          />
-          
-          {/* Badges */}
-          <div className="absolute top-2 left-2 flex flex-col gap-1">
-            {ad.isFeatured && (
-              <span className="bg-orange-500 text-white text-[10px] font-bold px-2 py-1 rounded flex items-center gap-1 shadow-sm">
-                <Zap className="w-3 h-3 fill-current" />
-                FEATURED
-              </span>
-            )}
-            {ad.isUrgent && (
-              <span className="bg-red-600 text-white text-[10px] font-bold px-2 py-1 rounded shadow-sm">
-                {t('urgent')}
-              </span>
-            )}
-          </div>
+<div className="relative aspect-[4/3] overflow-hidden bg-gray-200">
+  <img
+    src={
+      ad.images && ad.images.length > 0 
+        ? ad.images[0] 
+        : 'https://placehold.co/400x300?text=No+Photo+Uploaded'
+    }
+    alt={ad.title}
+    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+    loading="lazy"
+    onError={(e) => {
+      (e.target as HTMLImageElement).src = 'https://placehold.co/400x300?text=Image+Error';
+    }}
+  />
 
-          {/* Favorite Button */}
-          <button
-            onClick={onToggleFavorite}
-            className="absolute top-2 right-2 p-2 bg-white/80 backdrop-blur-sm rounded-full text-gray-600 hover:text-red-500 transition-colors shadow-sm"
-          >
-            <Heart className={cn("w-5 h-5", isFavorite && "fill-red-500 text-red-500")} />
-          </button>
-        </div>
+  {/* Only show this badge if there are no images, optional but looks good */}
+  {!ad.images || ad.images.length === 0 && (
+    <div className="absolute top-2 right-2 bg-black/40 backdrop-blur-sm text-white text-[10px] px-2 py-1 rounded font-bold">
+      NO PHOTO
+    </div>
+  )}
+</div>
 
         {/* Content */}
         <div className="p-4">
-          <div className="flex justify-between items-start mb-2">
-            <span className="text-xl font-bold text-green-800">
-              {formatPrice(ad.price)}
-            </span>
-            <span className="text-xs font-medium text-gray-500 bg-gray-100 px-2 py-1 rounded">
-              {t(ad.category.toLowerCase())}
-            </span>
+          <div className="flex justify-between items-start mb-4">
+            <div className="flex flex-col">
+              <h2 className="text-lg font-bold text-gray-800">
+                {ad.title}
+              </h2> 
+              <div className="text-base font-black text-green-700 mb-1">
+                {formatPrice(ad.price)}
+              </div>
+            </div>
+
+            <div className="text-right">
+              {ad.isUrgent && (
+                <span className="bg-red-100 text-red-600 text-xs font-bold px-2 py-1 rounded">
+                  URGENT SALE
+                </span>
+              )}
+            </div>
           </div>
-          
-          <h3 className={cn(
-            "font-semibold text-gray-800 mb-2 line-clamp-1 group-hover:text-green-700 transition-colors",
-            language === 'ur' && "font-urdu text-sm"
-          )}>
-            {ad.title}
-          </h3>
 
           <div className="flex items-center text-gray-500 text-xs mb-3">
             <MapPin className="w-3 h-3 mr-1" />
@@ -97,6 +91,33 @@ const AdCard: React.FC<AdCardProps> = ({ ad, isFavorite, onToggleFavorite }) => 
           </div>
         </div>
       </Link>
+
+      {/* Badges */}
+      <div className="absolute top-2 left-2 flex flex-col gap-1 pointer-events-none">
+        {ad.isFeatured && (
+          <span className="bg-orange-500 text-white text-[10px] font-bold px-2 py-1 rounded flex items-center gap-1 shadow-sm">
+            <Zap className="w-3 h-3 fill-current" />
+            FEATURED
+          </span>
+        )}
+        {ad.isUrgent && (
+          <span className="bg-red-600 text-white text-[10px] font-bold px-2 py-1 rounded shadow-sm">
+            {t('urgent')}
+          </span>
+        )}
+      </div>
+
+      {/* Favorite Button */}
+      <button
+        onClick={(e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          onToggleFavorite?.(e);
+        }}
+        className="absolute top-2 right-2 p-2 bg-white/80 backdrop-blur-sm rounded-full text-gray-600 hover:text-red-500 transition-colors shadow-sm z-10"
+      >
+        <Heart className={cn("w-5 h-5", isFavorite && "fill-red-500 text-red-500")} />
+      </button>
     </motion.div>
   );
 };

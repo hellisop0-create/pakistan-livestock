@@ -5,10 +5,10 @@ import { db } from '../firebase';
 import { Ad } from '../types';
 import { useLanguage } from '../LanguageContext';
 import { useAuth } from '../AuthContext';
-import { formatPrice, generateWhatsAppLink, cn } from '../lib/utils';
-import { MapPin, Phone, MessageCircle, ShieldCheck, Zap, Share2, Heart, ChevronLeft, ChevronRight, Flag, Calendar, Weight, Activity, Info } from 'lucide-react';
+import { formatPrice, cn } from '../lib/utils';
+import { MapPin, Phone, MessageCircle, ShieldCheck, Share2, ChevronLeft, ChevronRight, Flag, Calendar, Weight, Activity, Info } from 'lucide-react';
 import AdCard from '../components/AdCard';
-import { motion, AnimatePresence } from 'motion/react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { toast } from 'sonner';
 
 export default function AdDetail() {
@@ -18,7 +18,6 @@ export default function AdDetail() {
   const [loading, setLoading] = useState(true);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const { t } = useLanguage();
-  const { user, isAdmin } = useAuth();
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -32,10 +31,8 @@ export default function AdDetail() {
           const adData = { id: adDoc.id, ...adDoc.data() } as Ad;
           setAd(adData);
           
-          // Increment view count
           await updateDoc(doc(db, 'ads', id), { viewCount: increment(1) });
 
-          // Fetch related ads
           const relatedQuery = query(
             collection(db, 'ads'),
             where('category', '==', adData.category),
@@ -109,39 +106,47 @@ export default function AdDetail() {
             {/* Image Gallery */}
             <div className="bg-white rounded-2xl overflow-hidden shadow-sm border border-gray-200 relative group">
               <div className="aspect-video relative bg-black flex items-center justify-center">
-                <AnimatePresence mode="wait">
-                  <motion.img
-                    key={currentImageIndex}
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    exit={{ opacity: 0 }}
-                    src={ad.images[currentImageIndex] || 'https://picsum.photos/seed/livestock/800/600'}
-                    alt={ad.title}
-                    className="max-h-full max-w-full object-contain"
-                    referrerPolicy="no-referrer"
-                  />
-                </AnimatePresence>
-                
-                {ad.images.length > 1 && (
+                {ad.images && ad.images.length > 0 ? (
                   <>
-                    <button
-                      onClick={() => setCurrentImageIndex((prev) => (prev === 0 ? ad.images.length - 1 : prev - 1))}
-                      className="absolute left-4 top-1/2 -translate-y-1/2 p-2 bg-white/20 backdrop-blur-md rounded-full text-white hover:bg-white/40 transition-all opacity-0 group-hover:opacity-100"
-                    >
-                      <ChevronLeft className="w-6 h-6" />
-                    </button>
-                    <button
-                      onClick={() => setCurrentImageIndex((prev) => (prev === ad.images.length - 1 ? 0 : prev + 1))}
-                      className="absolute right-4 top-1/2 -translate-y-1/2 p-2 bg-white/20 backdrop-blur-md rounded-full text-white hover:bg-white/40 transition-all opacity-0 group-hover:opacity-100"
-                    >
-                      <ChevronRight className="w-6 h-6" />
-                    </button>
+                    <AnimatePresence mode="wait">
+                      <motion.img
+                        key={currentImageIndex}
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        src={ad.images[currentImageIndex]}
+                        alt={ad.title}
+                        className="max-h-full max-w-full object-contain"
+                        referrerPolicy="no-referrer"
+                      />
+                    </AnimatePresence>
+                    
+                    {ad.images.length > 1 && (
+                      <>
+                        <button
+                          onClick={() => setCurrentImageIndex((prev) => (prev === 0 ? ad.images.length - 1 : prev - 1))}
+                          className="absolute left-4 top-1/2 -translate-y-1/2 p-2 bg-white/20 backdrop-blur-md rounded-full text-white hover:bg-white/40 transition-all opacity-0 group-hover:opacity-100"
+                        >
+                          <ChevronLeft className="w-6 h-6" />
+                        </button>
+                        <button
+                          onClick={() => setCurrentImageIndex((prev) => (prev === ad.images.length - 1 ? 0 : prev + 1))}
+                          className="absolute right-4 top-1/2 -translate-y-1/2 p-2 bg-white/20 backdrop-blur-md rounded-full text-white hover:bg-white/40 transition-all opacity-0 group-hover:opacity-100"
+                        >
+                          <ChevronRight className="w-6 h-6" />
+                        </button>
+                      </>
+                    )}
                   </>
+                ) : (
+                  <div className="flex flex-col items-center text-gray-500">
+                    <Info className="w-12 h-12 mb-2 opacity-20" />
+                    <p className="text-sm font-medium">No photos uploaded</p>
+                  </div>
                 )}
               </div>
               
-              {/* Thumbnails */}
-              {ad.images.length > 1 && (
+              {ad.images && ad.images.length > 1 && (
                 <div className="p-4 flex space-x-2 overflow-x-auto">
                   {ad.images.map((img, idx) => (
                     <button
@@ -161,17 +166,14 @@ export default function AdDetail() {
 
             {/* Ad Info */}
             <div className="bg-white rounded-2xl p-6 sm:p-8 shadow-sm border border-gray-200">
-              <div className="flex justify-between items-start mb-6">
-                <div>
-                  <h1 className="text-3xl font-bold text-gray-900 mb-2">{ad.title}</h1>
-                  <div className="flex items-center text-gray-500 space-x-4">
-                    <span className="flex items-center"><MapPin className="w-4 h-4 mr-1" /> {ad.area}, {ad.city}</span>
-                    <span className="flex items-center"><Calendar className="w-4 h-4 mr-1" /> {new Date(ad.createdAt).toLocaleDateString()}</span>
-                  </div>
-                </div>
-                <div className="text-right">
-                  <div className="text-3xl font-black text-green-700 mb-1">{formatPrice(ad.price)}</div>
-                  {ad.isUrgent && <span className="bg-red-100 text-red-600 text-xs font-bold px-2 py-1 rounded">URGENT SALE</span>}
+              <div className="mb-6">
+                <h1 className="text-3xl font-bold text-gray-900 mb-2">{ad.title}</h1>
+                <div className="text-2xl font-black text-green-700 mb-1">{formatPrice(ad.price)}</div>
+                {ad.isUrgent && <span className="bg-red-100 text-red-600 text-xs font-bold px-2 py-1 rounded">URGENT SALE</span>}
+                
+                <div className="flex items-center text-gray-500 space-x-4 mt-4">
+                  <span className="flex items-center"><MapPin className="w-4 h-4 mr-1" /> {ad.area}, {ad.city}</span>
+                  <span className="flex items-center"><Calendar className="w-4 h-4 mr-1" /> {new Date(ad.createdAt).toLocaleDateString()}</span>
                 </div>
               </div>
 
@@ -207,7 +209,6 @@ export default function AdDetail() {
 
           {/* Sidebar */}
           <div className="space-y-6">
-            {/* Seller Info */}
             <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-200">
               <h3 className="text-lg font-bold text-gray-900 mb-6">Seller Details</h3>
               <div className="flex items-center space-x-4 mb-8">
@@ -243,7 +244,6 @@ export default function AdDetail() {
               </div>
             </div>
 
-            {/* Safety Tips */}
             <div className="bg-orange-50 rounded-2xl p-6 border border-orange-100">
               <h3 className="font-bold text-orange-900 mb-4 flex items-center">
                 <ShieldCheck className="w-5 h-5 mr-2" />
@@ -257,7 +257,6 @@ export default function AdDetail() {
               </ul>
             </div>
 
-            {/* Actions */}
             <div className="flex space-x-4">
               <button
                 onClick={handleShare}

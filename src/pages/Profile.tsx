@@ -11,6 +11,7 @@ import { User } from '../types';
 import { cn } from '../lib/utils';
 import { toast } from 'sonner';
 
+
 export default function Profile() {
   const { user, logout } = useAuth();
   const { t } = useLanguage();
@@ -18,6 +19,9 @@ export default function Profile() {
   const [activeTab, setActiveTab] = useState<'listings' | 'favorites'>('listings');
   const [myAds, setMyAds] = useState<Ad[]>([]);
   const [loading, setLoading] = useState(true);
+
+  // DEBUG:
+  console.log("TReW3CIHUOPs54r5a0wF9WMQX6E2:", user?.uid);
 
   useEffect(() => {
     if (!user) return;
@@ -34,14 +38,15 @@ export default function Profile() {
   if (!user) return null;
 
   const handleDeleteAd = async (adId: string) => {
-    if (!window.confirm('Are you sure you want to delete this ad?')) return;
-    try {
-      await deleteDoc(doc(db, 'ads', adId));
-      toast.success('Ad deleted successfully');
-    } catch (error) {
-      toast.error('Failed to delete ad');
-    }
-  };
+  console.log("Delete button clicked for ID:", adId); // If this doesn't show up, the button isn't firing
+  try {
+    await deleteDoc(doc(db, 'ads', adId));
+    toast.success('Ad deleted successfully');
+  } catch (error: any) {
+    console.error("Full Delete Error:", error);
+    toast.error('Failed to delete: ' + error.message);
+  }
+};
 
   return (
     <div className="min-h-screen bg-gray-50 py-12">

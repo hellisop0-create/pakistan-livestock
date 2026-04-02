@@ -1,15 +1,14 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
+import { collection, addDoc } from 'firebase/firestore';
 import { db } from '../firebase';
 import { useAuth } from '../AuthContext';
 import { useLanguage } from '../LanguageContext';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
-import { Camera, Video, MapPin, Phone, MessageCircle, AlertCircle, Loader2 } from 'lucide-react';
+import { Camera, MapPin, Phone, AlertCircle, Loader2, X, Image as ImageIcon, Clock } from 'lucide-react';
 import { toast } from 'sonner';
-import { generateWhatsAppLink } from '../lib/utils';
 
 const adSchema = z.object({
   title: z.string().min(5, 'Title must be at least 5 characters').max(100),
@@ -32,9 +31,12 @@ export default function PostAd() {
   const { t } = useLanguage();
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
-  const [images, setImages] = useState<string[]>([]);
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
+  const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
+  const [previews, setPreviews] = useState<string[]>([]);
+  const [showPhotoPopup, setShowPhotoPopup] = useState(false);
 
-  const { register, handleSubmit, formState: { errors }, watch } = useForm<AdFormData>({
+  const { register, handleSubmit, formState: { errors } } = useForm<AdFormData>({
     resolver: zodResolver(adSchema),
     defaultValues: {
       category: 'Cow',
@@ -57,106 +59,163 @@ export default function PostAd() {
     );
   }
 
+  const handleImageAdd = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (files && files.length > 0) {
+      const newFiles = Array.from(files);
+      if (selectedFiles.length + newFiles.length > 5) {
+        toast.error('Maximum 5 images allowed');
+        return;
+      }
+      setSelectedFiles(prev => [...prev, ...newFiles]);
+      const newPreviews = newFiles.map(file => URL.createObjectURL(file as File));
+      setPreviews(prev => [...prev, ...newPreviews]);
+      setShowPhotoPopup(false);
+      toast.success(`${newFiles.length} photo(s) selected`);
+    }
+    e.target.value = '';
+  };
+
+  const removeImage = (index: number) => {
+    setSelectedFiles(prev => prev.filter((_, i) => i !== index));
+    setPreviews(prev => prev.filter((_, i) => i !== index));
+  };
+
   const onSubmit = async (data: AdFormData) => {
+    if (selectedFiles.length === 0) return toast.error("Please add at least one photo");
+    
     setLoading(true);
     try {
-      const adData = {
-        ...data,
-        images: images.length > 0 ? images : ['https://picsum.photos/seed/livestock/800/600'],
-        sellerUid: user.uid,
-        sellerName: user.displayName,
-        status: 'pending',
-        isFeatured: false,
-        isUrgent: false,
-        viewCount: 0,
-        whatsappLink: generateWhatsAppLink(data.phoneNumber, data.title),
-        createdAt: new Date().toISOString(),
-        expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(), // 30 days
-      };
+      const uploadedUrls: string[] = [];
 
-      await addDoc(collection(db, 'ads'), adData);
-      toast.success('Ad posted successfully! It will be active after review.');
-      navigate('/profile');
-    } catch (error) {
-      console.error('Error posting ad:', error);
-      toast.error('Failed to post ad. Please try again.');
+      for (const file of selectedFiles) {
+        const formData = new FormData();
+        formData.append('file', file);
+        formData.append('upload_preset', 'ml_folder2');
+
+        const response = await fetch(
+          `https://api.cloudinary.com/v1_1/dmrgu1ebl/image/upload`,
+          { method: 'POST', body: formData }
+        );
+
+        if (!response.ok) throw new Error("Cloudinary upload failed");
+
+        const resData = await response.json();
+        if (resData.secure_url) {
+          uploadedUrls.push(resData.secure_url);
+        }
+      }
+
+      if (uploadedUrls.length === 0) throw new Error("No images were uploaded.");
+
+      await addDoc(collection(db, 'ads'), {
+        ...data,
+        images: uploadedUrls,
+        sellerUid: user?.uid,
+        sellerName: user?.displayName || 'Seller',
+        status: 'pending',
+        createdAt: new Date().toISOString(),
+      });
+
+      setShowSuccessModal(true); 
+
+    } catch (error: any) {
+      console.error("Final Error:", error);
+      toast.error(error.message || 'Failed to post ad.');
     } finally {
       setLoading(false);
     }
   };
 
-  const handleImageAdd = () => {
-    if (images.length >= 5) {
-      toast.error('Maximum 5 images allowed');
-      return;
-    }
-    const newImg = `https://picsum.photos/seed/${Math.random()}/800/600`;
-    setImages([...images, newImg]);
-  };
-
   return (
-    <div className="min-h-screen bg-gray-50 py-12">
-      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
-          <div className="bg-green-700 px-8 py-6 text-white">
-            <h1 className="text-2xl font-bold">{t('postAd')}</h1>
-            <p className="text-green-100 opacity-80">Fill in the details to sell your livestock quickly.</p>
+    <div className="min-h-screen bg-gray-50 py-12 pb-24 font-sans">
+      <div className="max-w-4xl mx-auto px-4">
+        <div className="bg-white rounded-3xl shadow-sm border border-gray-200 overflow-hidden">
+          <div className="bg-green-700 px-8 py-8 text-white">
+            <h1 className="text-3xl font-bold">{t('postAd')}</h1>
+            <p className="text-green-100 opacity-80 mt-1">Fill in the details to list your animal for sale.</p>
           </div>
 
-          <form onSubmit={handleSubmit(onSubmit)} className="p-8 space-y-8">
-            {/* Media Upload */}
-            <div>
-              <h3 className="text-lg font-bold text-gray-900 mb-4 flex items-center">
+          <form onSubmit={handleSubmit(onSubmit)} className="p-6 sm:p-8 space-y-8">
+            <div className="space-y-4">
+              <h3 className="text-lg font-bold text-gray-900 flex items-center">
                 <Camera className="w-5 h-5 mr-2 text-green-600" />
-                Media Upload
+                Animal Photos
               </h3>
-              <div className="grid grid-cols-2 sm:grid-cols-5 gap-4">
-                {images.map((img, idx) => (
-                  <div key={idx} className="aspect-square rounded-xl overflow-hidden border-2 border-gray-100 relative group">
-                    <img src={img} alt="" className="w-full h-full object-cover" />
+              
+              {previews.length < 5 && (
+                <div 
+                  onClick={() => setShowPhotoPopup(true)}
+                  className="flex flex-col items-center justify-center w-full h-44 border-2 border-dashed border-gray-300 rounded-2xl cursor-pointer hover:bg-green-50 transition-all group"
+                >
+                  <div className="p-4 bg-green-100 rounded-full mb-3 group-hover:scale-110 transition-transform">
+                    <Camera className="w-8 h-8 text-green-600" />
+                  </div>
+                  <p className="text-sm text-gray-600 font-bold">Add Photo</p>
+                  <p className="text-xs text-gray-400 mt-1">Camera or Gallery (Max 5)</p>
+                </div>
+              )}
+              
+              <div className="grid grid-cols-3 sm:grid-cols-5 gap-3">
+                {previews.map((url, index) => (
+                  <div key={index} className="relative aspect-square rounded-xl overflow-hidden border border-gray-200 shadow-sm">
+                    <img src={url} alt="preview" className="w-full h-full object-cover" />
                     <button
                       type="button"
-                      onClick={() => setImages(images.filter((_, i) => i !== idx))}
-                      className="absolute top-1 right-1 bg-red-500 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity"
+                      onClick={() => removeImage(index)}
+                      className="absolute top-1 right-1 bg-red-500 text-white p-1 rounded-full shadow-lg"
                     >
-                      <X className="w-3 h-3" />
+                      <X className="w-4 h-4" />
                     </button>
                   </div>
                 ))}
-                {images.length < 5 && (
-                  <button
-                    type="button"
-                    onClick={handleImageAdd}
-                    className="aspect-square rounded-xl border-2 border-dashed border-gray-200 flex flex-col items-center justify-center text-gray-400 hover:border-green-500 hover:text-green-500 transition-all"
-                  >
-                    <Camera className="w-8 h-8 mb-2" />
-                    <span className="text-xs font-medium">Add Photo</span>
-                  </button>
-                )}
               </div>
-              <p className="text-xs text-gray-500 mt-2">Max 5 images. High quality photos sell faster!</p>
             </div>
+
+            {/* SELECTION POPUP */}
+            {showPhotoPopup && (
+              <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+                <div className="bg-white w-full max-w-sm rounded-t-[2.5rem] sm:rounded-3xl p-8 shadow-2xl">
+                  <div className="flex justify-between items-center mb-8">
+                    <h3 className="text-2xl font-black text-gray-900">Upload Photo</h3>
+                    <button type="button" onClick={() => setShowPhotoPopup(false)} className="p-2 bg-gray-100 rounded-full">
+                      <X className="w-5 h-5 text-gray-500"/>
+                    </button>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-6">
+                    <label className="flex flex-col items-center justify-center p-6 bg-green-50 rounded-2xl border-2 border-green-100 cursor-pointer active:scale-95 transition-all">
+                      <div className="w-14 h-14 bg-green-600 rounded-full flex items-center justify-center mb-3 shadow-lg">
+                        <Camera className="w-7 h-7 text-white" />
+                      </div>
+                      <span className="font-bold text-green-900 text-center text-sm">Take Picture</span>
+                      <input type="file" accept="image/*" capture="environment" className="hidden" onChange={handleImageAdd} />
+                    </label>
+
+                    <label className="flex flex-col items-center justify-center p-6 bg-blue-50 rounded-2xl border-2 border-blue-100 cursor-pointer active:scale-95 transition-all">
+                      <div className="w-14 h-14 bg-blue-600 rounded-full flex items-center justify-center mb-3 shadow-lg">
+                        <ImageIcon className="w-7 h-7 text-white" />
+                      </div>
+                      <span className="font-bold text-blue-900 text-sm">Gallery</span>
+                      <input type="file" accept="image/*" multiple className="hidden" onChange={handleImageAdd} />
+                    </label>
+                  </div>
+                </div>
+              </div>
+            )}
 
             <hr className="border-gray-100" />
 
-            {/* Basic Info */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="md:col-span-2">
                 <label className="block text-sm font-bold text-gray-700 mb-2">Ad Title</label>
-                <input
-                  {...register('title')}
-                  placeholder="e.g. Beautiful Sahiwal Cow for Sale"
-                  className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-green-500 focus:outline-none"
-                />
+                <input {...register('title')} placeholder="e.g. Sahiwal Cow for Sale" className="w-full p-4 bg-gray-50 border border-gray-200 rounded-2xl outline-none" />
                 {errors.title && <p className="text-red-500 text-xs mt-1">{errors.title.message}</p>}
               </div>
 
               <div>
                 <label className="block text-sm font-bold text-gray-700 mb-2">Category</label>
-                <select
-                  {...register('category')}
-                  className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-green-500 focus:outline-none"
-                >
+                <select {...register('category')} className="w-full p-4 bg-gray-50 border border-gray-200 rounded-2xl outline-none">
                   {['Cow', 'Buffalo', 'Goat', 'Sheep', 'Camel', 'Others'].map(cat => (
                     <option key={cat} value={cat}>{cat}</option>
                   ))}
@@ -165,73 +224,30 @@ export default function PostAd() {
 
               <div>
                 <label className="block text-sm font-bold text-gray-700 mb-2">Price (PKR)</label>
-                <input
-                  type="number"
-                  {...register('price', { valueAsNumber: true })}
-                  placeholder="e.g. 250000"
-                  className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-green-500 focus:outline-none"
-                />
+                <input type="number" {...register('price', { valueAsNumber: true })} className="w-full p-4 bg-gray-50 border border-gray-200 rounded-2xl outline-none" />
                 {errors.price && <p className="text-red-500 text-xs mt-1">{errors.price.message}</p>}
               </div>
 
               <div className="md:col-span-2">
                 <label className="block text-sm font-bold text-gray-700 mb-2">Description</label>
-                <textarea
-                  {...register('description')}
-                  rows={4}
-                  placeholder="Describe your animal's features, health, and behavior..."
-                  className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-green-500 focus:outline-none"
-                ></textarea>
+                <textarea {...register('description')} rows={4} className="w-full p-4 bg-gray-50 border border-gray-200 rounded-2xl outline-none"></textarea>
                 {errors.description && <p className="text-red-500 text-xs mt-1">{errors.description.message}</p>}
               </div>
             </div>
 
-            <hr className="border-gray-100" />
-
-            {/* Animal Details */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-              <div>
-                <label className="block text-sm font-bold text-gray-700 mb-2">Breed</label>
-                <input {...register('breed')} placeholder="e.g. Sahiwal, Cholistani" className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-green-500 focus:outline-none" />
-                {errors.breed && <p className="text-red-500 text-xs mt-1">{errors.breed.message}</p>}
-              </div>
-              <div>
-                <label className="block text-sm font-bold text-gray-700 mb-2">Age</label>
-                <input {...register('age')} placeholder="e.g. 2 Years, 4 Teeth" className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-green-500 focus:outline-none" />
-                {errors.age && <p className="text-red-500 text-xs mt-1">{errors.age.message}</p>}
-              </div>
-              <div>
-                <label className="block text-sm font-bold text-gray-700 mb-2">Weight (Approx)</label>
-                <input {...register('weight')} placeholder="e.g. 350 KG, 10 Mund" className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-green-500 focus:outline-none" />
-                {errors.weight && <p className="text-red-500 text-xs mt-1">{errors.weight.message}</p>}
-              </div>
-              <div>
-                <label className="block text-sm font-bold text-gray-700 mb-2">Health Condition</label>
-                <input {...register('healthCondition')} placeholder="e.g. Fully Vaccinated, Healthy" className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-green-500 focus:outline-none" />
-                {errors.healthCondition && <p className="text-red-500 text-xs mt-1">{errors.healthCondition.message}</p>}
-              </div>
+            <div className="grid grid-cols-2 gap-6">
+              <input {...register('breed')} placeholder="Breed" className="w-full p-4 bg-gray-50 border border-gray-200 rounded-2xl outline-none" />
+              <input {...register('age')} placeholder="Age" className="w-full p-4 bg-gray-50 border border-gray-200 rounded-2xl outline-none" />
+              <input {...register('weight')} placeholder="Weight" className="w-full p-4 bg-gray-50 border border-gray-200 rounded-2xl outline-none" />
+              <input {...register('healthCondition')} placeholder="Health" className="w-full p-4 bg-gray-50 border border-gray-200 rounded-2xl outline-none" />
             </div>
 
-            <hr className="border-gray-100" />
-
-            {/* Location & Contact */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-              <div>
-                <label className="block text-sm font-bold text-gray-700 mb-2">City</label>
-                <input {...register('city')} placeholder="e.g. Lahore" className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-green-500 focus:outline-none" />
-                {errors.city && <p className="text-red-500 text-xs mt-1">{errors.city.message}</p>}
-              </div>
-              <div>
-                <label className="block text-sm font-bold text-gray-700 mb-2">Area</label>
-                <input {...register('area')} placeholder="e.g. DHA Phase 6, Mandi Road" className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-green-500 focus:outline-none" />
-                {errors.area && <p className="text-red-500 text-xs mt-1">{errors.area.message}</p>}
-              </div>
-              <div className="sm:col-span-2">
-                <label className="block text-sm font-bold text-gray-700 mb-2">Phone Number</label>
-                <div className="relative">
-                  <Phone className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-5 h-5" />
-                  <input {...register('phoneNumber')} placeholder="e.g. 03001234567" className="w-full pl-12 pr-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-green-500 focus:outline-none" />
-                </div>
+              <input {...register('city')} placeholder="City" className="w-full p-4 bg-gray-50 border border-gray-200 rounded-2xl outline-none" />
+              <input {...register('area')} placeholder="Area" className="w-full p-4 bg-gray-50 border border-gray-200 rounded-2xl outline-none" />
+              <div className="sm:col-span-2 relative">
+                <Phone className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 w-5 h-5" />
+                <input {...register('phoneNumber')} placeholder="Phone Number (0300...)" className="w-full pl-12 pr-4 py-4 bg-gray-50 border border-gray-200 rounded-2xl outline-none" />
                 {errors.phoneNumber && <p className="text-red-500 text-xs mt-1">{errors.phoneNumber.message}</p>}
               </div>
             </div>
@@ -239,19 +255,29 @@ export default function PostAd() {
             <button
               type="submit"
               disabled={loading}
-              className="w-full bg-green-700 text-white py-4 rounded-xl font-bold text-lg hover:bg-green-800 transition-all shadow-lg flex items-center justify-center space-x-2 disabled:opacity-70"
+              className="w-full bg-green-700 text-white py-5 rounded-2xl font-black text-xl flex items-center justify-center space-x-3 shadow-xl disabled:opacity-70"
             >
-              {loading ? <Loader2 className="w-6 h-6 animate-spin" /> : <span>Post Ad Now</span>}
+              {loading ? <Loader2 className="w-7 h-7 animate-spin" /> : <span>Post Advertisement</span>}
             </button>
           </form>
         </div>
       </div>
-    </div>
-  );
-}
 
-function X({ className }: { className?: string }) {
-  return (
-    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
+      {/* SUCCESS REVIEW MODAL */}
+      {showSuccessModal && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-md">
+          <div className="bg-white w-full max-w-md rounded-[2.5rem] p-8 shadow-2xl text-center">
+            <div className="w-20 h-20 bg-orange-100 rounded-full flex items-center justify-center mx-auto mb-6">
+              <Clock className="w-10 h-10 text-orange-600 animate-pulse" />
+            </div>
+            <h3 className="text-2xl font-black text-gray-900 mb-2">Ad Under Review</h3>
+            <p className="text-gray-600 mb-8">Your ad is being reviewed by the admin. Please wait for approval.</p>
+            <button onClick={() => navigate('/profile')} className="w-full bg-green-700 text-white py-4 rounded-2xl font-bold">
+              Go to My Profile
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
   );
 }
