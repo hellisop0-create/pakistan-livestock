@@ -13,9 +13,11 @@ export default function Footer() {
           {/* Brand */}
           <div className="space-y-4">
             <div className="flex items-center space-x-2">
-              <div className="w-10 h-10 bg-white rounded-lg flex items-center justify-center">
-                <span className="text-green-900 font-bold text-xl">LM</span>
-              </div>
+              <img 
+              src="https://i.postimg.cc/3NczPCmQ/logo.png" 
+              alt="Logo" 
+              className="h-10 w-auto object-contain" 
+            />
               <span className="text-xl font-bold">{t('appName')}</span>
             </div>
             <p className="text-green-100 text-sm leading-relaxed">

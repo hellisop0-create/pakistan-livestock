@@ -3,13 +3,38 @@ import { Link } from 'react-router-dom';
 import { useLanguage } from '../LanguageContext';
 import { motion } from 'motion/react';
 
+// Using Web URLs so Google AI Studio can display them immediately
 const categories = [
-  { id: 'Cow', icon: '🐄', color: 'bg-blue-50' },
-  { id: 'Buffalo', icon: '🐃', color: 'bg-slate-50' },
-  { id: 'Goat', icon: '🐐', color: 'bg-orange-50' },
-  { id: 'Sheep', icon: '🐑', color: 'bg-pink-50' },
-  { id: 'Camel', icon: '🐪', color: 'bg-yellow-50' },
-  { id: 'Others', icon: '🐾', color: 'bg-green-50' },
+  { 
+    id: 'Cow', 
+    image: 'https://i.postimg.cc/KzSQT3Nn/cow.jpg', 
+    color: 'bg-green-50' 
+  },
+  { 
+    id: 'Buffalo', 
+    image: 'https://i.postimg.cc/Bv1MtBxQ/buffalo.jpg', 
+    color: 'bg-green-50' 
+  },
+  { 
+    id: 'Goat', 
+    image: 'https://i.postimg.cc/KzPfDcpx/goat.jpg', 
+    color: 'bg-green-50' 
+  },
+  { 
+    id: 'Sheep', 
+    image: 'https://i.postimg.cc/bvQV3Rsq/sheep.jpg', 
+    color: 'bg-green-50' 
+  },
+  { 
+    id: 'Camel', 
+    image: 'https://i.postimg.cc/KYnpJ549/camel.jpg', 
+    color: 'bg-green-50' 
+  },
+  { 
+    id: 'Others', 
+    image: 'https://images.pexels.com/photos/1108099/pexels-photo-1108099.jpeg?auto=compress&cs=tinysrgb&w=300', 
+    color: 'bg-green-50' 
+  },
 ];
 
 export default function CategoryGrid() {
@@ -30,12 +55,19 @@ export default function CategoryGrid() {
             >
               <Link
                 to={`/browse?category=${cat.id}`}
-                className={`flex flex-col items-center justify-center p-6 rounded-2xl ${cat.color} hover:shadow-md transition-all border border-transparent hover:border-gray-200 group`}
+                className={`flex flex-col items-center justify-center p-4 rounded-2xl ${cat.color} hover:shadow-md transition-all border border-transparent hover:border-gray-200 group h-full`}
               >
-                <span className="text-4xl mb-3 group-hover:scale-110 transition-transform">
-                  {cat.icon}
-                </span>
-                <span className="font-semibold text-gray-700">
+                {/* Fixed size Circle Container */}
+                <div className="w-16 h-16 sm:w-20 sm:h-20 mb-3 overflow-hidden rounded-full bg-white shadow-sm group-hover:scale-110 transition-transform border border-gray-100">
+                  <img 
+                    src={cat.image} 
+                    alt={cat.id}
+                    className="w-full h-full object-cover"
+                    loading="lazy"
+                  />
+                </div>
+                
+                <span className="font-semibold text-gray-700 text-sm sm:text-base text-center">
                   {t(cat.id.toLowerCase())}
                 </span>
               </Link>
