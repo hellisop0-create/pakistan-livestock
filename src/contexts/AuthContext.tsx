@@ -9,6 +9,13 @@ import { doc, onSnapshot } from 'firebase/firestore';
 import { auth, db } from '../firebase';
 import { User } from '../types';
 
+// 1. CENTRAL ADMIN LIST (Must match your Admin.tsx)
+const ADMIN_EMAILS = [
+  'saadatali1403@gmail.com',
+  'hellisop0@gmail.com',
+  'mehreensaadat2@gmail.com'
+].map(email => email.toLowerCase().trim());
+
 interface AuthContextType {
   user: User | null;
   loading: boolean;
@@ -25,10 +32,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [isAdmin, setIsAdmin] = useState(false);
 
   useEffect(() => {
-    // 1. Listen for Auth State changes
     const unsubscribeAuth = onAuthStateChanged(auth, (firebaseUser) => {
       if (firebaseUser) {
-        // 2. Real-time listener for the Firestore user document
+        const userEmail = firebaseUser.email?.toLowerCase().trim() || "";
+        
+        // 2. IMMEDIATE CHECK: Check if email is in the hardcoded list
+        const isHardcodedAdmin = ADMIN_EMAILS.includes(userEmail);
+
         const userDocRef = doc(db, 'users', firebaseUser.uid);
         
         const unsubscribeSnapshot = onSnapshot(userDocRef, (docSnap) => {
@@ -40,12 +50,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
               email: firebaseUser.email,
               displayName: firebaseUser.displayName,
               photoURL: firebaseUser.photoURL,
-              ...userData // This brings in your favoriteAds array!
+              ...userData 
             } as User);
             
-            setIsAdmin(userData.role === 'admin');
+            // 3. FINAL ADMIN LOGIC: True if role is admin OR email is in list
+            setIsAdmin(userData.role === 'admin' || isHardcodedAdmin);
           } else {
-            // Fallback if no Firestore doc exists yet
             setUser({
               uid: firebaseUser.uid,
               email: firebaseUser.email,
@@ -53,11 +63,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
               photoURL: firebaseUser.photoURL,
               favoriteAds: []
             } as User);
-            setIsAdmin(false);
+            
+            // Even if no database doc exists, let them in if they are in the list
+            setIsAdmin(isHardcodedAdmin);
           }
           setLoading(false);
         }, (error) => {
           console.error("Firestore sync error:", error);
+          // If Firestore fails, still give access based on email list
+          setIsAdmin(isHardcodedAdmin);
           setLoading(false);
         });
 
@@ -85,6 +99,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const logout = async () => {
     try {
       await signOut(auth);
+      // Clear local storage on logout just in case
+      sessionStorage.removeItem('admin_session_active');
     } catch (error) {
       console.error('Logout error:', error);
       throw error;
@@ -93,7 +109,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   return (
     <AuthContext.Provider value={{ user, loading, login, logout, isAdmin }}>
-      {/* We only show the app once we know if the user is logged in or not */}
       {!loading && children}
     </AuthContext.Provider>
   );
