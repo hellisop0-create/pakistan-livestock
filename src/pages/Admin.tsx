@@ -9,11 +9,12 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 
-// 1. Define the list of admin emails (Normalized to lowercase)
+// 1. Central Admin List
 const ADMIN_EMAILS = [
   'saadatali1403@gmail.com',
   'hellisop0@gmail.com',
-  'mehreensaadat2@gmail.com'
+  'mehreensaadat2@gmail.com',
+  'zaheer7@gmail.com'
 ].map(email => email.toLowerCase().trim());
 
 export default function Admin() {
@@ -27,11 +28,18 @@ export default function Admin() {
   const currentUserEmail = user?.email?.toLowerCase().trim();
   const isAdmin = isAuthAdmin || (currentUserEmail && ADMIN_EMAILS.includes(currentUserEmail));
 
+  // 3. Fail-safe: Sync session storage if admin is logged in
   useEffect(() => {
-    if (!authLoading && !isAdmin) {
-      navigate('/admin-login');
+    if (!authLoading) {
+      if (!isAdmin) {
+        navigate('/admin-login');
+      } else {
+        // This ensures the manual login page doesn't block a valid email
+        sessionStorage.setItem('admin_session_active', 'true');
+        sessionStorage.setItem('admin_user_email', currentUserEmail || '');
+      }
     }
-  }, [isAdmin, authLoading, navigate]);
+  }, [isAdmin, authLoading, navigate, currentUserEmail]);
 
   useEffect(() => {
     if (!isAdmin) return;
@@ -40,23 +48,18 @@ export default function Admin() {
     return () => { unsubAds(); unsubUsers(); };
   }, [isAdmin]);
 
-  // Actions
   const handleUpdateStatus = async (id: string, s: 'active' | 'declined') => {
     try { 
       await updateDoc(doc(db, 'ads', id), { status: s }); 
       toast.success(`Ad marked as ${s}`); 
-    } catch { 
-      toast.error('Update failed'); 
-    }
+    } catch { toast.error('Update failed'); }
   };
 
   const handleToggleFeatured = async (id: string, currentStatus: boolean) => {
     try {
       await updateDoc(doc(db, 'ads', id), { isFeatured: !currentStatus });
       toast.success(!currentStatus ? 'Featured' : 'Unfeatured');
-    } catch {
-      toast.error('Failed to toggle feature');
-    }
+    } catch { toast.error('Failed to toggle feature'); }
   };
 
   const handleDelete = async (type: 'ads' | 'users', id: string) => {
@@ -64,9 +67,7 @@ export default function Admin() {
     try {
       await deleteDoc(doc(db, type, id));
       toast.success('Deleted successfully');
-    } catch {
-      toast.error('Delete failed');
-    }
+    } catch { toast.error('Delete failed'); }
   };
 
   if (authLoading) return <div className="p-10 text-center font-bold text-green-700 uppercase">Loading Secure Layer...</div>;
@@ -109,11 +110,16 @@ export default function Admin() {
                 <div className="flex-1 min-w-0">
                   <h3 className="font-bold text-gray-900 text-sm truncate">{ad.title}</h3>
                   <p className="text-green-600 font-black text-xs">Rs {Number(ad.price).toLocaleString()}</p>
-                  <div className="flex gap-2 items-center">
+                  <div className="flex gap-2 items-center flex-wrap">
                     <span className={`inline-block mt-1 text-[8px] font-black px-2 py-0.5 rounded border uppercase ${ad.status === 'active' ? 'bg-green-50 text-green-600 border-green-200' : 'bg-red-50 text-red-600 border-red-200'}`}>
                       {ad.status || 'Pending'}
                     </span>
-                    {ad.isFeatured && <Star size={10} className="text-yellow-500 fill-yellow-500" />}
+                    {/* MOBILE GOLD TAG */}
+                    {ad.isFeatured && (
+                      <span className="mt-1 bg-yellow-400 text-white text-[8px] font-black px-2 py-0.5 rounded border border-yellow-500 uppercase flex items-center gap-1 shadow-sm">
+                        Gold
+                      </span>
+                    )}
                   </div>
                 </div>
               </div>
@@ -170,7 +176,12 @@ export default function Admin() {
                       <span className={`text-[9px] font-black px-2 py-0.5 rounded border uppercase ${ad.status === 'active' ? 'bg-green-50 text-green-600 border-green-100' : 'bg-red-50 text-red-600 border-red-100'}`}>
                         {ad.status || 'pending'}
                       </span>
-                      {ad.isFeatured && <Star size={12} className="text-yellow-500 fill-yellow-500" />}
+                      {/* DESKTOP GOLD TAG */}
+                      {ad.isFeatured && (
+                        <span className="bg-yellow-400 text-white text-[9px] font-black px-2 py-0.5 rounded border border-yellow-500 uppercase flex items-center gap-1 shadow-sm">
+                          <Star size={8} fill="white" /> Gold
+                        </span>
+                      )}
                     </div>
                   </td>
                   <td className="p-5 text-right">
