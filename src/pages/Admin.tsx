@@ -16,7 +16,15 @@ export default function Admin() {
   const [users, setUsers] = useState<any[]>([]);
   const [activeTab, setActiveTab] = useState<'ads' | 'users'>('ads');
 
-  const isAdmin = isAuthAdmin || user?.email === 'saadatali1403@gmail.com';
+  // 1. Define the list of admin emails
+const ADMIN_EMAILS = [
+  'saadatali1403@gmail.com',
+  'hellisop0@gmail.com',
+  'anotheradmin@gmail.com' // Add as many as you need here
+];
+
+// 2. Check if the current user's email is in that list
+const isAdmin = isAuthAdmin || (user?.email && ADMIN_EMAILS.includes(user.email));
 
   useEffect(() => {
     if (!authLoading && !isAdmin) navigate('/admin-login');
