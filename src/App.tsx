@@ -10,30 +10,34 @@ import AdDetail from './pages/AdDetail';
 import PostAd from './pages/PostAd';
 import Profile from './pages/Profile';
 import Admin from './pages/Admin';
+import ScrollToTop from './components/ScrollToTop'; // 1. Import your new component
 import { Toaster } from 'sonner';
 
 export default function App() {
   return (
     <LanguageProvider>
-  <AuthProvider>
-    <Router>
-      <div className="min-h-screen flex flex-col bg-gray-50">
-        <Navbar />
-        <main className="flex-grow">
-          <Routes>
-            <Route path="/" element={<Home />} />
-            <Route path="/browse" element={<Browse />} />
-            <Route path="/ad/:id" element={<AdDetail />} />
-            <Route path="/post-ad" element={<PostAd />} />
-            <Route path="/profile" element={<Profile />} />
-            <Route path="/admin" element={<Admin />} />
-          </Routes>
-        </main>
-        <Footer />
-        <Toaster position="top-center" richColors />
-      </div>
-    </Router>
-  </AuthProvider>
-</LanguageProvider>
+      <AuthProvider>
+        <Router>
+          {/* 2. Place it here so it runs on every route change */}
+          <ScrollToTop /> 
+          
+          <div className="min-h-screen flex flex-col bg-gray-50">
+            <Navbar />
+            <main className="flex-grow">
+              <Routes>
+                <Route path="/" element={<Home />} />
+                <Route path="/browse" element={<Browse />} />
+                <Route path="/ad/:id" element={<AdDetail />} />
+                <Route path="/post-ad" element={<PostAd />} />
+                <Route path="/profile" element={<Profile />} />
+                <Route path="/admin" element={<Admin />} />
+              </Routes>
+            </main>
+            <Footer />
+            <Toaster position="top-center" richColors />
+          </div>
+        </Router>
+      </AuthProvider>
+    </LanguageProvider>
   );
 }

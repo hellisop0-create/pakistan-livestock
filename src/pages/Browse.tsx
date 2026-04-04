@@ -39,17 +39,25 @@ export default function Browse() {
     q = query(q, orderBy('createdAt', sortFilter === 'price_asc' || sortFilter === 'price_desc' ? 'desc' : 'desc'));
 
     const unsubscribe = onSnapshot(q, (snapshot) => {
-      let results = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Ad));
-      
-      if (sortFilter === 'price_asc') {
-        results.sort((a, b) => a.price - b.price);
-      } else if (sortFilter === 'price_desc') {
-        results.sort((a, b) => b.price - a.price);
-      }
+  let results = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Ad));
+  
+  // Custom sorting: Featured ads always come first
+  results.sort((a, b) => {
+    // 1. Check if one is featured and the other isn't
+    if (a.is_featured && !b.is_featured) return -1;
+    if (!a.is_featured && b.is_featured) return 1;
 
-      setAds(results);
-      setLoading(false);
-    });
+    // 2. If they are both featured (or both not), use the selected filter
+    if (sortFilter === 'price_asc') return a.price - b.price;
+    if (sortFilter === 'price_desc') return b.price - a.price;
+    
+    // Default to newest first
+    return b.createdAt?.seconds - a.createdAt?.seconds;
+  });
+
+  setAds(results);
+  setLoading(false);
+});
 
     return () => unsubscribe();
   }, [categoryFilter, cityFilter, sortFilter]);
