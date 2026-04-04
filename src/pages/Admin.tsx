@@ -19,8 +19,15 @@ export default function Admin() {
   const isAdmin = user?.email === 'hellisop0@gmail.com';
 
   useEffect(() => {
+    // Security check: Redirect if not admin
+    if (!authLoading && !isAdmin) {
+      navigate('/');
+      return;
+    }
+
     if (!isAdmin) return;
 
+    // Start listeners
     const unsubAds = onSnapshot(collection(db, 'ads'), (snapshot) => {
       setAds(snapshot.docs.map(d => ({ id: d.id, ...d.data() })));
     });
@@ -29,8 +36,15 @@ export default function Admin() {
       setUsers(snapshot.docs.map(d => ({ uid: d.id, ...d.data() })));
     });
 
-    return () => { unsubAds(); unsubUsers(); };
-  }, [isAdmin]);
+    // --- SECURITY LOCK & CLEANUP ---
+    return () => {
+      unsubAds();
+      unsubUsers();
+      setAds([]); 
+      setUsers([]);
+      console.log("Admin session locked and data cleared.");
+    };
+  }, [isAdmin, authLoading, navigate]);
 
   // --- AD ACTIONS ---
   const handleUpdateAdStatus = async (adId: string, status: 'active' | 'declined') => {
@@ -86,10 +100,10 @@ export default function Admin() {
           </div>
 
           <div className="flex bg-white p-1.5 rounded-2xl border shadow-sm w-full md:w-auto">
-            <button onClick={() => setActiveTab('ads')} className={`flex items-center gap-2 px-6 py-2.5 rounded-xl font-black text-xs uppercase transition-all ${activeTab === 'ads' ? 'bg-green-600 text-white shadow-lg' : 'text-gray-400 hover:text-gray-600'}`}>
+            <button onClick={() => setActiveTab('ads')} className={`flex items-center gap-2 px-6 py-2.5 rounded-xl font-black text-xs uppercase transition-all ${activeTab === 'ads' ? 'bg-green-600 text-white shadow-lg shadow-green-100' : 'text-gray-400 hover:text-gray-600'}`}>
               <LayoutDashboard size={14} /> Listings ({ads.length})
             </button>
-            <button onClick={() => setActiveTab('users')} className={`flex items-center gap-2 px-6 py-2.5 rounded-xl font-black text-xs uppercase transition-all ${activeTab === 'users' ? 'bg-green-600 text-white shadow-lg' : 'text-gray-400 hover:text-gray-600'}`}>
+            <button onClick={() => setActiveTab('users')} className={`flex items-center gap-2 px-6 py-2.5 rounded-xl font-black text-xs uppercase transition-all ${activeTab === 'users' ? 'bg-green-600 text-white shadow-lg shadow-green-100' : 'text-gray-400 hover:text-gray-600'}`}>
               <Users size={14} /> Sellers ({users.length})
             </button>
           </div>
@@ -109,10 +123,8 @@ export default function Admin() {
             <tbody className="divide-y divide-gray-50">
               {activeTab === 'ads' ? ads.map(ad => (
                 <tr key={ad.id} className="hover:bg-gray-50/30 transition-colors group">
-                  {/* Image & ID */}
                   <td className="p-5">
                     <div className="flex items-center gap-4">
-                      {/* THUMBNAIL */}
                       <div className="w-20 h-14 rounded-xl bg-gray-100 overflow-hidden flex-shrink-0 border-2 border-gray-100 shadow-sm relative">
                         {ad.images?.[0] ? (
                           <img 
@@ -142,7 +154,6 @@ export default function Admin() {
                     </div>
                   </td>
 
-                  {/* Seller & Price */}
                   <td className="p-5">
                     <div className="text-xs font-bold text-gray-800">{ad.sellerName || 'Anonymous'}</div>
                     <div className="text-[10px] text-green-600 font-black mt-0.5 tracking-wide">
@@ -150,7 +161,6 @@ export default function Admin() {
                     </div>
                   </td>
 
-                  {/* Status Badges */}
                   <td className="p-5">
                     <div className="flex flex-col gap-1.5 items-start">
                       <span className={`text-[9px] font-black px-2 py-0.5 rounded border uppercase tracking-tighter ${ad.status === 'active' ? 'bg-green-50 border-green-200 text-green-600' : 'bg-red-50 border-red-200 text-red-600'}`}>
@@ -164,25 +174,14 @@ export default function Admin() {
                     </div>
                   </td>
 
-                  {/* ACTIONS */}
                   <td className="p-5 text-right">
                     <div className="flex justify-end items-center gap-1">
-                      <button 
-                        onClick={() => handleUpdateAdStatus(ad.id, 'active')} 
-                        className="p-2 text-green-600 hover:bg-green-50 rounded-lg transition-all"
-                        title="Approve"
-                      >
+                      <button onClick={() => handleUpdateAdStatus(ad.id, 'active')} className="p-2 text-green-600 hover:bg-green-50 rounded-lg transition-all" title="Approve">
                         <CheckCircle2 size={20} />
                       </button>
-                      
-                      <button 
-                        onClick={() => handleUpdateAdStatus(ad.id, 'declined')} 
-                        className="p-2 text-orange-600 hover:bg-orange-50 rounded-lg transition-all"
-                        title="Decline"
-                      >
+                      <button onClick={() => handleUpdateAdStatus(ad.id, 'declined')} className="p-2 text-orange-600 hover:bg-orange-50 rounded-lg transition-all" title="Decline">
                         <XCircle size={20} />
                       </button>
-
                       <button 
                         onClick={() => handleToggleFeatured(ad.id, ad.isFeatured)} 
                         className={`p-2 rounded-lg transition-all ${ad.isFeatured ? 'bg-yellow-400 text-white shadow-md' : 'bg-gray-100 text-gray-400 hover:bg-yellow-50 hover:text-yellow-500'}`}
@@ -190,18 +189,11 @@ export default function Admin() {
                       >
                         <Star size={20} fill={ad.isFeatured ? 'white' : 'none'} />
                       </button>
-
                       <div className="w-[1px] h-6 bg-gray-200 mx-1"></div>
-
                       <Link to={`/ad/${ad.id}`} className="p-2 bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-100 transition-all">
                         <ExternalLink size={20} />
                       </Link>
-
-                      <button 
-                        onClick={() => handleDeleteAd(ad.id)} 
-                        className="p-2 bg-red-50 text-red-600 rounded-lg hover:bg-red-100 transition-all"
-                        title="Delete"
-                      >
+                      <button onClick={() => handleDeleteAd(ad.id)} className="p-2 bg-red-50 text-red-600 rounded-lg hover:bg-red-100 transition-all" title="Delete">
                         <Trash2 size={20} />
                       </button>
                     </div>
@@ -211,8 +203,13 @@ export default function Admin() {
                 users.map(u => (
                   <tr key={u.uid} className="hover:bg-gray-50/30 transition-colors">
                     <td className="p-5 flex items-center gap-3">
-                       <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center font-black text-blue-600 border border-blue-200">
-                          {u.displayName?.charAt(0) || 'U'}
+                       {/* Profile Picture Logic Added Here */}
+                       <div className="w-10 h-10 rounded-full overflow-hidden bg-blue-100 flex items-center justify-center font-black text-blue-600 border border-blue-200 shadow-sm flex-shrink-0">
+                          {u.photoURL ? (
+                            <img src={u.photoURL} alt="" className="w-full h-full object-cover" />
+                          ) : (
+                            <span>{u.displayName?.charAt(0) || 'U'}</span>
+                          )}
                        </div>
                        <div className="font-bold text-gray-900 text-sm">{u.displayName || 'Guest User'}</div>
                     </td>
@@ -236,7 +233,6 @@ export default function Admin() {
               )}
             </tbody>
           </table>
-          {/* Empty States */}
           {((activeTab === 'ads' && ads.length === 0) || (activeTab === 'users' && users.length === 0)) && (
             <div className="p-20 text-center text-gray-400 font-bold uppercase tracking-widest">
                 No Data Found
