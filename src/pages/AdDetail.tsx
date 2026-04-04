@@ -188,26 +188,40 @@ export default function AdDetail() {
           </div>
 
           {/* Sidebar */}
-          <div className="space-y-6">
-            <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-200">
-              <h3 className="font-bold mb-6">Seller Details</h3>
-              <div className="flex items-center gap-4 mb-8">
-                <div className="w-14 h-14 rounded-full bg-green-100 flex items-center justify-center font-bold text-green-700 text-xl">
-                  {ad.sellerName.charAt(0)}
-                </div>
-                <div>
-                  <div className="font-bold flex items-center">{ad.sellerName} <ShieldCheck className="w-4 h-4 text-blue-500 ml-1" /></div>
-                  <div className="text-xs text-gray-500">Verified Seller</div>
-                </div>
-              </div>
-              <div className="space-y-3">
-                <a href={ad.whatsappLink} target="_blank" className="w-full bg-green-600 text-white py-3 rounded-xl font-bold flex items-center justify-center gap-2"><MessageCircle /> WhatsApp</a>
-                <a href={`tel:${ad.phoneNumber}`} className="w-full border-2 border-green-600 text-green-600 py-3 rounded-xl font-bold flex items-center justify-center gap-2"><Phone /> Call</a>
-              </div>
-            </div>
-          </div>
+          {/* Sidebar */}
+<div className="space-y-6">
+  <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-200">
+    <h3 className="font-bold mb-6">Seller Details</h3>
+    <div className="flex items-center gap-4 mb-8">
+      <div className="w-14 h-14 rounded-full bg-green-100 flex items-center justify-center font-bold text-green-700 text-xl">
+        {ad.sellerName?.charAt(0) || 'U'}
+      </div>
+      <div>
+        <div className="font-bold flex items-center">
+          {ad.sellerName} <ShieldCheck className="w-4 h-4 text-blue-500 ml-1" />
         </div>
+        <div className="text-xs text-gray-500">Verified Seller</div>
       </div>
     </div>
-  );
-}
+    <div className="space-y-3">
+      {/* IMPROVED WHATSAPP BUTTON */}
+      <a 
+        href={ad.whatsappLink?.startsWith('http') ? ad.whatsappLink : `https://wa.me/${ad.phoneNumber}`} 
+        target="_blank" 
+        rel="noopener noreferrer"
+        className="w-full bg-green-600 text-white py-3 rounded-xl font-bold flex items-center justify-center gap-2 hover:bg-green-700 transition-colors"
+      >
+        <MessageCircle className="w-5 h-5" /> 
+        WhatsApp
+      </a>
+      
+      <a 
+        href={`tel:${ad.phoneNumber}`} 
+        className="w-full border-2 border-green-600 text-green-600 py-3 rounded-xl font-bold flex items-center justify-center gap-2 hover:bg-green-50 transition-colors"
+      >
+        <Phone className="w-5 h-5" /> 
+        Call
+      </a>
+    </div>
+  </div>
+</div>
