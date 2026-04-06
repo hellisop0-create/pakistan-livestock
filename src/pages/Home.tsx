@@ -17,23 +17,19 @@ export default function Home() {
   const [promoAd, setPromoAd] = useState<any>(null);
   const [favorites, setFavorites] = useState<string[]>([]);
   
-  // --- SEARCH & LOCATION STATE ---
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCity, setSelectedCity] = useState("All Pakistan");
 
   const { t } = useLanguage();
   const { user } = useAuth();
 
-  // Sync favorites
+  // Sync favorites with user profile
   useEffect(() => {
-    if (user?.favoriteAds) {
-      setFavorites(user.favoriteAds);
-    } else {
-      setFavorites([]);
-    }
+    if (user?.favoriteAds) setFavorites(user.favoriteAds);
+    else setFavorites([]);
   }, [user?.favoriteAds]);
 
-  // Real-time Data Fetching
+  // Fetch data from Firestore
   useEffect(() => {
     const promoQuery = query(collection(db, 'active_ads'), where('isActive', '==', true), orderBy('createdAt', 'desc'), limit(1));
     const unsubscribePromo = onSnapshot(promoQuery, (snapshot) => {
@@ -45,7 +41,7 @@ export default function Home() {
       setFeaturedAds(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Ad)));
     });
 
-    const latestQuery = query(collection(db, 'ads'), where('status', '==', 'active'), orderBy('createdAt', 'desc'), limit(50));
+    const latestQuery = query(collection(db, 'ads'), where('status', '==', 'active'), orderBy('createdAt', 'desc'), limit(100));
     const unsubscribeLatest = onSnapshot(latestQuery, (snapshot) => {
       setLatestAds(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Ad)));
       setLoading(false);
@@ -58,36 +54,25 @@ export default function Home() {
     };
   }, []);
 
-  // --- CLEAN FILTERING LOGIC ---
+  // --- FILTERING LOGIC ---
   const filteredLatestAds = latestAds.filter((ad) => {
-    const titleMatch = (ad.title || "").toLowerCase().includes(searchQuery.toLowerCase().trim());
-    const descMatch = (ad.description || "").toLowerCase().includes(searchQuery.toLowerCase().trim());
-    const matchesSearch = titleMatch || descMatch;
+    const normalizedSearch = searchQuery.toLowerCase().trim();
+    const titleMatch = (ad.title || "").toLowerCase().includes(normalizedSearch);
+    const descMatch = (ad.description || "").toLowerCase().includes(normalizedSearch);
     
-    // Checks location field in Firebase (case-insensitive and trimmed)
-    const matchesCity = 
-      selectedCity === "All Pakistan" || 
-      (ad.location || "").toLowerCase().trim() === selectedCity.toLowerCase().trim();
+    const matchesSearch = titleMatch || descMatch;
+    const matchesCity = selectedCity === "All Pakistan" || 
+                        (ad.location || "").toLowerCase() === selectedCity.toLowerCase();
 
     return matchesSearch && matchesCity;
   });
 
-  // --- DEBUG LOGGER ---
-  useEffect(() => {
-    console.log(`Search: "${searchQuery}" | City: ${selectedCity} | Showing: ${filteredLatestAds.length}/${latestAds.length}`);
-  }, [searchQuery, selectedCity, filteredLatestAds, latestAds]);
-
   const toggleFavorite = async (adId: string) => {
-    if (!user) {
-      toast.error('Please login to favorite ads');
-      return;
-    }
+    if (!user) return toast.error('Please login to favorite ads');
     const userRef = doc(db, 'users', user.uid);
     const isCurrentlyFavorite = favorites.includes(adId);
     try {
-      await updateDoc(userRef, {
-        favoriteAds: isCurrentlyFavorite ? arrayRemove(adId) : arrayUnion(adId)
-      });
+      await updateDoc(userRef, { favoriteAds: isCurrentlyFavorite ? arrayRemove(adId) : arrayUnion(adId) });
       if (!isCurrentlyFavorite) toast.success('Added to favorites');
     } catch (error) {
       toast.error('Failed to update favorites');
@@ -95,7 +80,7 @@ export default function Home() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gray-50 pb-20">
       <Hero 
         searchQuery={searchQuery} 
         setSearchQuery={setSearchQuery} 
@@ -109,15 +94,15 @@ export default function Home() {
         <section className="max-w-7xl mx-auto px-4 mb-12">
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="relative overflow-hidden rounded-3xl shadow-lg border border-gray-100">
             <a href={promoAd.targetUrl} target="_blank" rel="sponsored noopener noreferrer">
-              <img src={promoAd.imageUrl} alt="Sponsored" className="w-full h-auto object-cover max-h-[300px] transition-transform duration-700 hover:scale-105" />
-              <div className="absolute top-4 right-4 bg-white/90 backdrop-blur px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest text-gray-900">Sponsored</div>
+              <img src={promoAd.imageUrl} alt="Ad" className="w-full h-auto object-cover max-h-[300px]" />
             </a>
           </motion.div>
         </section>
       )}
 
+      {/* Featured Section (Hide when search is active) */}
       {featuredAds.length > 0 && !searchQuery && selectedCity === "All Pakistan" && (
-        <section className="py-12 bg-white">
+        <section className="py-12 bg-white mb-8">
           <div className="max-w-7xl mx-auto px-4">
             <h2 className="text-2xl font-bold mb-8">{t('featured')}</h2>
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-6">
@@ -129,7 +114,8 @@ export default function Home() {
         </section>
       )}
 
-      <section className="py-12">
+      {/* MAIN RESULTS SECTION */}
+      <section id="results-section" className="py-12">
         <div className="max-w-7xl mx-auto px-4">
           <h2 className="text-2xl font-bold mb-8 text-gray-900">
             {searchQuery || selectedCity !== "All Pakistan" ? "Search Results" : t('latest')}
@@ -149,10 +135,10 @@ export default function Home() {
 
               {filteredLatestAds.length === 0 && (
                 <div className="text-center py-20 bg-white rounded-2xl border border-dashed border-gray-300">
-                  <p className="text-gray-500 text-lg">No ads match your search criteria.</p>
+                  <p className="text-gray-500 text-lg">No matching ads found.</p>
                   <button 
                     onClick={() => {setSearchQuery(""); setSelectedCity("All Pakistan")}} 
-                    className="mt-4 text-green-700 font-semibold underline hover:text-green-800"
+                    className="mt-4 text-green-700 font-semibold underline"
                   >
                     Clear all filters
                   </button>
