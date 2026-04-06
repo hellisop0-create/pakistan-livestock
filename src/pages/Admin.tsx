@@ -9,12 +9,10 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 
-// 1. Central Admin List (Add new admins here)
 const ADMIN_EMAILS = [
   'saadatali1403@gmail.com',
   'hellisop0@gmail.com',
-  'mehreensaadat2@gmail.com',
-  'zaheer7@gmail.com'
+  'mehreensaadat2@gmail.com'
 ].map(email => email.toLowerCase().trim());
 
 export default function Admin() {
@@ -24,24 +22,15 @@ export default function Admin() {
   const [users, setUsers] = useState<any[]>([]);
   const [activeTab, setActiveTab] = useState<'ads' | 'users'>('ads');
 
-  // 2. Comprehensive Admin Check
   const currentUserEmail = user?.email?.toLowerCase().trim();
   const isAdmin = isAuthAdmin || (currentUserEmail && ADMIN_EMAILS.includes(currentUserEmail));
 
-  // 3. Security & Session Sync
   useEffect(() => {
-    if (!authLoading) {
-      if (!isAdmin) {
-        navigate('/admin-login');
-      } else {
-        // Sync session for the manual login gate
-        sessionStorage.setItem('admin_session_active', 'true');
-        sessionStorage.setItem('admin_user_email', currentUserEmail || '');
-      }
+    if (!authLoading && !isAdmin) {
+      navigate('/admin-login');
     }
-  }, [isAdmin, authLoading, navigate, currentUserEmail]);
+  }, [isAdmin, authLoading, navigate]);
 
-  // 4. Data Listeners
   useEffect(() => {
     if (!isAdmin) return;
     const unsubAds = onSnapshot(collection(db, 'ads'), (s) => 
@@ -53,7 +42,6 @@ export default function Admin() {
     return () => { unsubAds(); unsubUsers(); };
   }, [isAdmin]);
 
-  // Actions
   const handleUpdateStatus = async (id: string, s: 'active' | 'declined') => {
     try { 
       await updateDoc(doc(db, 'ads', id), { status: s }); 
@@ -90,18 +78,11 @@ export default function Admin() {
             <p className="text-gray-400 text-[10px] font-bold uppercase tracking-widest">Operations Dashboard</p>
           </div>
 
-          {/* TAB SWITCHER */}
           <div className="flex bg-white p-1 rounded-xl border shadow-sm w-full overflow-x-auto">
-            <button 
-              onClick={() => setActiveTab('ads')} 
-              className={`flex-1 flex items-center justify-center gap-2 px-4 py-2 rounded-lg font-black text-[10px] uppercase transition-all whitespace-nowrap ${activeTab === 'ads' ? 'bg-green-600 text-white' : 'text-gray-400'}`}
-            >
+            <button onClick={() => setActiveTab('ads')} className={`flex-1 flex items-center justify-center gap-2 px-4 py-2 rounded-lg font-black text-[10px] uppercase transition-all ${activeTab === 'ads' ? 'bg-green-600 text-white' : 'text-gray-400'}`}>
               <LayoutDashboard size={14} /> Listings ({ads.length})
             </button>
-            <button 
-              onClick={() => setActiveTab('users')} 
-              className={`flex-1 flex items-center justify-center gap-2 px-4 py-2 rounded-lg font-black text-[10px] uppercase transition-all whitespace-nowrap ${activeTab === 'users' ? 'bg-green-600 text-white' : 'text-gray-400'}`}
-            >
+            <button onClick={() => setActiveTab('users')} className={`flex-1 flex items-center justify-center gap-2 px-4 py-2 rounded-lg font-black text-[10px] uppercase transition-all ${activeTab === 'users' ? 'bg-green-600 text-white' : 'text-gray-400'}`}>
               <Users size={14} /> Sellers ({users.length})
             </button>
           </div>
@@ -120,16 +101,10 @@ export default function Admin() {
                     <span className={`mt-1 text-[8px] font-black px-2 py-0.5 rounded border uppercase ${ad.status === 'active' ? 'bg-green-50 text-green-600 border-green-200' : 'bg-red-50 text-red-600 border-red-200'}`}>
                       {ad.status || 'Pending'}
                     </span>
-                    {/* GOLD TAG MOBILE */}
-                    {ad.isFeatured && (
-                      <span className="mt-1 bg-yellow-400 text-white text-[8px] font-black px-2 py-0.5 rounded border border-yellow-500 uppercase">
-                        Gold
-                      </span>
-                    )}
+                    {ad.isFeatured && <span className="mt-1 bg-yellow-400 text-white text-[8px] font-black px-2 py-0.5 rounded border border-yellow-500 uppercase">Gold</span>}
                   </div>
                 </div>
               </div>
-              
               <div className="flex flex-wrap gap-2 pt-3 border-t justify-between items-center">
                 <div className="flex gap-1">
                   <button onClick={() => handleUpdateStatus(ad.id, 'active')} className="p-2 bg-green-50 text-green-600 rounded-lg"><CheckCircle2 size={18} /></button>
@@ -145,16 +120,15 @@ export default function Admin() {
           )) : users.map(u => (
              <div key={u.uid} className="bg-white p-4 rounded-xl border flex items-center justify-between">
                 <div className="flex items-center gap-3">
-                  {/* USER PHOTO MOBILE */}
                   {(u.photoURL || u.image) ? (
                     <img src={u.photoURL || u.image} referrerPolicy="no-referrer" className="w-10 h-10 rounded-full object-cover border" />
                   ) : (
-                    <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center font-bold text-blue-600 uppercase">
-                      {u.displayName?.charAt(0)}
+                    <div className="w-10 h-10 rounded-full bg-blue-600 flex items-center justify-center font-bold text-white uppercase text-xs">
+                      {u.displayName?.charAt(0) || 'U'}
                     </div>
                   )}
                   <div className="flex flex-col min-w-0">
-                    <div className="text-sm font-bold truncate max-w-[120px]">{u.displayName || 'Guest'}</div>
+                    <div className="text-sm font-bold truncate max-w-[120px]">{u.displayName || 'Seller'}</div>
                     <div className="text-[10px] text-gray-400 truncate max-w-[120px]">{u.email}</div>
                   </div>
                 </div>
@@ -192,21 +166,14 @@ export default function Admin() {
                       <span className={`text-[9px] font-black px-2 py-0.5 rounded border uppercase ${ad.status === 'active' ? 'bg-green-50 text-green-600 border-green-100' : 'bg-red-50 text-red-600 border-red-100'}`}>
                         {ad.status || 'pending'}
                       </span>
-                      {/* GOLD TAG DESKTOP */}
-                      {ad.isFeatured && (
-                        <span className="bg-yellow-400 text-white text-[9px] font-black px-2 py-0.5 rounded border border-yellow-500 uppercase flex items-center gap-1">
-                          <Star size={8} fill="white" /> Gold
-                        </span>
-                      )}
+                      {ad.isFeatured && <span className="bg-yellow-400 text-white text-[9px] font-black px-2 py-0.5 rounded border border-yellow-500 uppercase flex items-center gap-1"><Star size={8} fill="white" /> Gold</span>}
                     </div>
                   </td>
                   <td className="p-5 text-right">
                     <div className="flex justify-end gap-2">
                       <button onClick={() => handleUpdateStatus(ad.id, 'active')} className="text-green-600 p-1 hover:bg-green-50 rounded"><CheckCircle2 size={18} /></button>
                       <button onClick={() => handleUpdateStatus(ad.id, 'declined')} className="text-orange-600 p-1 hover:bg-orange-50 rounded"><XCircle size={18} /></button>
-                      <button onClick={() => handleToggleFeatured(ad.id, ad.isFeatured)} className={`${ad.isFeatured ? 'text-yellow-500' : 'text-gray-300'} p-1 hover:bg-yellow-50 rounded`}>
-                        <Star size={18} fill={ad.isFeatured ? 'currentColor' : 'none'} />
-                      </button>
+                      <button onClick={() => handleToggleFeatured(ad.id, ad.isFeatured)} className={`${ad.isFeatured ? 'text-yellow-500' : 'text-gray-300'} p-1 hover:bg-yellow-50 rounded`}><Star size={18} fill={ad.isFeatured ? 'currentColor' : 'none'} /></button>
                       <Link to={`/ad/${ad.id}`} className="text-blue-600 p-1 hover:bg-blue-50 rounded"><ExternalLink size={18} /></Link>
                       <button onClick={() => handleDelete('ads', ad.id)} className="text-red-600 p-1 hover:bg-red-50 rounded"><Trash2 size={18} /></button>
                     </div>
@@ -216,33 +183,33 @@ export default function Admin() {
                 <tr key={u.uid} className="hover:bg-gray-50/50 transition-colors">
                   <td className="p-5">
                     <div className="flex items-center gap-3">
-                      {/* USER PHOTO DESKTOP */}
-                      {(u.photoURL || u.image) ? (
-                        <img src={u.photoURL || u.image} referrerPolicy="no-referrer" className="w-10 h-10 rounded-full object-cover border shadow-sm" />
+                      {(u.photoURL || u.image || u.profilePic) ? (
+                        <img 
+                          src={u.photoURL || u.image || u.profilePic} 
+                          referrerPolicy="no-referrer" 
+                          className="w-10 h-10 rounded-full object-cover border shadow-sm" 
+                        />
                       ) : (
-                        <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center font-bold text-blue-600 uppercase">
-                          {u.displayName?.charAt(0)}
+                        <div className="w-10 h-10 rounded-full bg-blue-600 flex items-center justify-center font-bold text-white uppercase text-xs">
+                          {u.displayName?.charAt(0) || 'U'}
                         </div>
                       )}
-                      <span className="font-bold text-sm">{u.displayName || 'Guest User'}</span>
+                      <span className="font-bold text-sm text-gray-900">{u.displayName || 'Seller'}</span>
                     </div>
                   </td>
                   <td className="p-5 text-sm text-gray-500">{u.email}</td>
                   <td className="p-5">
-                    <span className="text-[10px] font-black bg-blue-50 text-blue-600 px-2 py-1 rounded-full border border-blue-100 uppercase">
-                      Seller
-                    </span>
+                    <span className="text-[10px] font-black bg-blue-50 text-blue-600 px-3 py-1 rounded-full border border-blue-100 uppercase">Seller</span>
                   </td>
                   <td className="p-5 text-right">
-                    <button onClick={() => handleDelete('users', u.uid)} className="text-red-400 hover:text-red-600 p-2">
-                      <Trash2 size={18} />
-                    </button>
+                    <button onClick={() => handleDelete('users', u.uid)} className="text-red-400 hover:text-red-600 p-2"><Trash2 size={18} /></button>
                   </td>
                 </tr>
               ))}
             </tbody>
           </table>
         </div>
+
       </div>
     </div>
   );
