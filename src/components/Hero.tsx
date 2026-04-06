@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react'; // 1. Added useState
 import { Search, MapPin } from 'lucide-react';
 import { useLanguage } from '../contexts/LanguageContext';
 import { motion } from 'motion/react';
@@ -6,10 +6,22 @@ import { cn } from '../lib/utils';
 
 export default function Hero() {
   const { t, language } = useLanguage();
+  
+  // 2. Create state for the search text and location
+  const [searchTerm, setSearchTerm] = useState('');
+  const [location, setLocation] = useState('All Pakistan');
+
+  // 3. This function runs when you click the orange button
+  const handleSearch = () => {
+    if (!searchTerm.trim()) return; // Don't search if empty
+    
+    console.log(`Searching for: ${searchTerm} in ${location}`);
+    // Here you would usually redirect: 
+    // window.location.href = `/search?q=${searchTerm}&city=${location}`;
+  };
 
   return (
     <div className="relative bg-green-900 overflow-hidden">
-      {/* Background Pattern */}
       <div className="absolute inset-0 opacity-10">
         <div className="absolute inset-0" style={{ backgroundImage: 'radial-gradient(#ffffff 1px, transparent 1px)', backgroundSize: '40px 40px' }}></div>
       </div>
@@ -38,7 +50,6 @@ export default function Hero() {
             {t('tagline')}
           </motion.p>
 
-          {/* Search Bar */}
           <motion.div 
             initial={{ opacity: 0, scale: 0.9 }}
             animate={{ opacity: 1, scale: 1 }}
@@ -49,13 +60,21 @@ export default function Hero() {
               <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 w-5 h-5" />
               <input
                 type="text"
+                value={searchTerm} // 4. Connect input to state
+                onChange={(e) => setSearchTerm(e.target.value)} // 5. Update state on type
+                onKeyDown={(e) => e.key === 'Enter' && handleSearch()} // Search on Enter key
                 placeholder={t('search')}
                 className="w-full pl-12 pr-4 py-4 rounded-xl focus:outline-none text-gray-700 text-lg"
               />
             </div>
+            
             <div className="w-full sm:w-auto border-t sm:border-t-0 sm:border-l border-gray-100 px-4 py-2 flex items-center space-x-2">
               <MapPin className="text-gray-400 w-5 h-5" />
-              <select className="bg-transparent focus:outline-none text-gray-600 font-medium">
+              <select 
+                value={location}
+                onChange={(e) => setLocation(e.target.value)}
+                className="bg-transparent focus:outline-none text-gray-600 font-medium"
+              >
                 <option>All Pakistan</option>
                 <option>Lahore</option>
                 <option>Karachi</option>
@@ -64,14 +83,17 @@ export default function Hero() {
                 <option>Multan</option>
               </select>
             </div>
-            <button className="w-full sm:w-auto bg-orange-500 text-white px-8 py-4 rounded-xl font-bold text-lg hover:bg-orange-600 transition-all shadow-lg">
+
+            <button 
+              onClick={handleSearch} // 6. Connect button to function
+              className="w-full sm:w-auto bg-orange-500 text-white px-8 py-4 rounded-xl font-bold text-lg hover:bg-orange-600 transition-all shadow-lg"
+            >
               {t('search').split(' ')[0]}
             </button>
           </motion.div>
         </div>
       </div>
 
-      {/* Decorative Animals (Abstract) */}
       <div className="absolute bottom-0 left-0 w-full h-16 bg-gradient-to-t from-white/10 to-transparent"></div>
     </div>
   );
