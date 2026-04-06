@@ -5,6 +5,7 @@ import { LanguageProvider } from './contexts/LanguageContext';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import Navbar from './components/Navbar';
 import Footer from './components/Footer';
+import EditAd from './pages/EditAd';
 import Home from './pages/Home';
 import Browse from './pages/Browse';
 import AdDetail from './pages/AdDetail';
