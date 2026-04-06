@@ -13,7 +13,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { Ad } from '../types';
 import AdCard from '../components/AdCard';
 import { useLanguage } from '../contexts/LanguageContext';
-import { Heart, List, Trash2, CheckCircle, LogOut, Loader2, AlertCircle } from 'lucide-react';
+import { Heart, List, Trash2, CheckCircle, LogOut, Loader2, Clock } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { cn } from '../lib/utils';
 import { toast } from 'sonner';
@@ -31,29 +31,22 @@ export default function Profile() {
 
   // 1. Fetch User's Own Listings (Real-time)
   useEffect(() => {
-    if (!user?.uid) {
-      console.log("No User UID found in AuthContext");
-      return;
-    }
+    if (!user?.uid) return;
 
     setLoading(true);
-    console.log("Searching ads for User:", user.uid);
 
-    // We query the collection. 
-    // If 'userId' is the wrong field name in your DB, change it to 'uid' or 'ownerId'
+    // FIXED: Changed 'userId' to 'sellerUid' to match your PostAd logic
     const q = query(
       collection(db, 'ads'),
-      where('userId', '==', user.uid)
+      where('sellerUid', '==', user.uid)
     );
 
     const unsubscribe = onSnapshot(q, (snapshot) => {
-      console.log("Firestore Snapshot received. Documents found:", snapshot.size);
-      
       const ads = snapshot.docs.map(doc => ({ 
         id: doc.id, 
         ...doc.data() 
       } as Ad));
-
+      
       setMyAds(ads);
       setLoading(false);
     }, (err) => {
@@ -94,7 +87,6 @@ export default function Profile() {
 
       return () => unsubscribe();
     } catch (error) {
-      console.error("Favorites setup error:", error);
       setLoadingFavs(false);
     }
   }, [activeTab, user?.favoriteAds]);
@@ -134,19 +126,17 @@ export default function Profile() {
               <h2 className="text-xl font-bold text-gray-900">{user.displayName || 'User'}</h2>
               <p className="text-sm text-gray-500 mb-6">{user.email}</p>
               
-              <div className="flex flex-col space-y-2">
-                <button 
-                  onClick={logout} 
-                  className="w-full bg-red-50 text-red-600 py-2.5 rounded-lg font-bold hover:bg-red-100 flex items-center justify-center space-x-2 transition-colors"
-                >
-                  <LogOut className="w-4 h-4" />
-                  <span>Logout</span>
-                </button>
-              </div>
+              <button 
+                onClick={logout} 
+                className="w-full bg-red-50 text-red-600 py-2.5 rounded-lg font-bold hover:bg-red-100 flex items-center justify-center space-x-2 transition-colors"
+              >
+                <LogOut className="w-4 h-4" />
+                <span>Logout</span>
+              </button>
             </div>
           </div>
 
-          {/* Main Content */}
+          {/* Main Content Area */}
           <div className="lg:col-span-3 space-y-6">
             <div className="bg-white rounded-2xl p-2 shadow-sm border border-gray-200 flex space-x-2">
               <button
@@ -175,14 +165,13 @@ export default function Profile() {
               {activeTab === 'listings' ? (
                 <div className="space-y-4">
                   {loading ? (
-                    <div className="flex flex-col items-center py-12">
-                      <Loader2 className="w-8 h-8 text-green-700 animate-spin mb-2" />
-                      <p className="text-gray-500 italic">Checking your ads...</p>
+                    <div className="flex justify-center py-12">
+                      <Loader2 className="w-8 h-8 text-green-700 animate-spin" />
                     </div>
                   ) : myAds.length > 0 ? (
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                       {myAds.map(ad => (
-                        <div key={ad.id} className="bg-white rounded-2xl p-4 shadow-sm border border-gray-200 flex space-x-4">
+                        <div key={ad.id} className="bg-white rounded-2xl p-4 shadow-sm border border-gray-200 flex space-x-4 relative">
                           <div className="w-24 h-24 sm:w-32 sm:h-32 rounded-xl overflow-hidden flex-shrink-0 bg-gray-100">
                             <img 
                               src={ad.images?.[0] || 'https://via.placeholder.com/150?text=No+Image'} 
@@ -192,7 +181,14 @@ export default function Profile() {
                           </div>
                           <div className="flex-1 min-w-0 flex flex-col justify-between">
                             <div>
-                              <h4 className="font-bold text-gray-900 truncate">{ad.title}</h4>
+                              <div className="flex items-center justify-between">
+                                <h4 className="font-bold text-gray-900 truncate pr-2">{ad.title}</h4>
+                                {ad.status === 'pending' && (
+                                  <span className="bg-amber-50 text-amber-600 text-[10px] px-2 py-0.5 rounded-full flex items-center font-medium border border-amber-100">
+                                    <Clock className="w-3 h-3 mr-1" /> Pending
+                                  </span>
+                                )}
+                              </div>
                               <p className="text-green-700 font-bold mt-1">
                                 {ad.price ? `${ad.price.toLocaleString()} PKR` : 'Price on call'}
                               </p>
@@ -211,23 +207,18 @@ export default function Profile() {
                     </div>
                   ) : (
                     <div className="bg-white rounded-2xl p-12 text-center border border-dashed border-gray-300">
-                      <AlertCircle className="w-12 h-12 text-gray-300 mx-auto mb-4" />
-                      <p className="text-gray-500">No ads found for your account.</p>
-                      <button 
-                        onClick={() => navigate('/post')} 
-                        className="mt-4 text-green-700 font-bold hover:underline"
-                      >
-                        Try posting a new ad
+                      <p className="text-gray-500">No ads found. Try posting one!</p>
+                      <button onClick={() => navigate('/post')} className="mt-4 text-green-700 font-bold">
+                        Go to Post Ad
                       </button>
                     </div>
                   )}
                 </div>
               ) : (
+                /* Favorites Tab stays the same */
                 <div className="space-y-4">
                   {loadingFavs ? (
-                    <div className="flex justify-center py-12">
-                      <Loader2 className="w-8 h-8 text-green-700 animate-spin" />
-                    </div>
+                    <div className="flex justify-center py-12"><Loader2 className="w-8 h-8 text-green-700 animate-spin" /></div>
                   ) : favoriteAds.length > 0 ? (
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                       {favoriteAds.map(ad => (
@@ -236,7 +227,6 @@ export default function Profile() {
                     </div>
                   ) : (
                     <div className="bg-white rounded-2xl p-12 text-center border border-dashed border-gray-300">
-                      <Heart className="w-12 h-12 text-gray-200 mx-auto mb-4" />
                       <p className="text-gray-500">No favorite ads yet.</p>
                     </div>
                   )}
