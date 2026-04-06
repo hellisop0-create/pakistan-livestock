@@ -64,15 +64,15 @@ export default function Footer() {
             <ul className="space-y-4 text-green-100 text-sm">
               <li className="flex items-start space-x-3">
                 <MapPin className="w-5 h-5 flex-shrink-0" />
-                <span>Lahore, Punjab, Pakistan</span>
+                <span>Hyderabad, Sindh, Pakistan</span>
               </li>
               <li className="flex items-center space-x-3">
                 <Phone className="w-5 h-5 flex-shrink-0" />
-                <span>+92 300 1234567</span>
+                <span>+92 317 3916434</span>
               </li>
               <li className="flex items-center space-x-3">
                 <Mail className="w-5 h-5 flex-shrink-0" />
-                <span>support@livestockmandi.pk</span>
+                <span>PakistanLivestockMandi.com</span>
               </li>
             </ul>
           </div>
