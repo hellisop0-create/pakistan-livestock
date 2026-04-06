@@ -45,7 +45,7 @@ export default function Home() {
       setFeaturedAds(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Ad)));
     });
 
-    const latestQuery = query(collection(db, 'ads'), where('status', '==', 'active'), orderBy('createdAt', 'desc'), limit(50)); // Increased limit for better searching
+    const latestQuery = query(collection(db, 'ads'), where('status', '==', 'active'), orderBy('createdAt', 'desc'), limit(50));
     const unsubscribeLatest = onSnapshot(latestQuery, (snapshot) => {
       setLatestAds(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Ad)));
       setLoading(false);
@@ -58,19 +58,21 @@ export default function Home() {
     };
   }, []);
 
-  // --- LIVE FILTERING LOGIC ---
+  // --- CLEAN FILTERING LOGIC ---
   const filteredLatestAds = latestAds.filter((ad) => {
-    const titleMatch = ad.title?.toLowerCase().includes(searchQuery.toLowerCase());
-    const descMatch = ad.description?.toLowerCase().includes(searchQuery.toLowerCase());
+    const titleMatch = (ad.title || "").toLowerCase().includes(searchQuery.toLowerCase().trim());
+    const descMatch = (ad.description || "").toLowerCase().includes(searchQuery.toLowerCase().trim());
     const matchesSearch = titleMatch || descMatch;
     
-    // IMPORTANT: Make sure your Firebase field is exactly 'location'
-    const matchesCity = selectedCity === "All Pakistan" || ad.location === selectedCity;
+    // Checks location field in Firebase (case-insensitive and trimmed)
+    const matchesCity = 
+      selectedCity === "All Pakistan" || 
+      (ad.location || "").toLowerCase().trim() === selectedCity.toLowerCase().trim();
 
     return matchesSearch && matchesCity;
   });
 
-  // --- DEBUG LOGGER (Check your F12 Console) ---
+  // --- DEBUG LOGGER ---
   useEffect(() => {
     console.log(`Search: "${searchQuery}" | City: ${selectedCity} | Showing: ${filteredLatestAds.length}/${latestAds.length}`);
   }, [searchQuery, selectedCity, filteredLatestAds, latestAds]);
@@ -95,15 +97,25 @@ export default function Home() {
   return (
     <div className="min-h-screen bg-gray-50">
       <Hero 
-        searchQuery={searchQuery}
-        setSearchQuery={setSearchQuery}
-        selectedCity={selectedCity}
-        setSelectedCity={setSelectedCity}
+        searchQuery={searchQuery} 
+        setSearchQuery={setSearchQuery} 
+        selectedCity={selectedCity} 
+        setSelectedCity={setSelectedCity} 
       />
       
       <CategoryGrid />
 
-      {/* Featured Section (Hide when searching) */}
+      {promoAd && (
+        <section className="max-w-7xl mx-auto px-4 mb-12">
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="relative overflow-hidden rounded-3xl shadow-lg border border-gray-100">
+            <a href={promoAd.targetUrl} target="_blank" rel="sponsored noopener noreferrer">
+              <img src={promoAd.imageUrl} alt="Sponsored" className="w-full h-auto object-cover max-h-[300px] transition-transform duration-700 hover:scale-105" />
+              <div className="absolute top-4 right-4 bg-white/90 backdrop-blur px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest text-gray-900">Sponsored</div>
+            </a>
+          </motion.div>
+        </section>
+      )}
+
       {featuredAds.length > 0 && !searchQuery && selectedCity === "All Pakistan" && (
         <section className="py-12 bg-white">
           <div className="max-w-7xl mx-auto px-4">
@@ -117,7 +129,6 @@ export default function Home() {
         </section>
       )}
 
-      {/* Results Section */}
       <section className="py-12">
         <div className="max-w-7xl mx-auto px-4">
           <h2 className="text-2xl font-bold mb-8 text-gray-900">
@@ -139,7 +150,12 @@ export default function Home() {
               {filteredLatestAds.length === 0 && (
                 <div className="text-center py-20 bg-white rounded-2xl border border-dashed border-gray-300">
                   <p className="text-gray-500 text-lg">No ads match your search criteria.</p>
-                  <button onClick={() => {setSearchQuery(""); setSelectedCity("All Pakistan")}} className="mt-4 text-green-700 font-semibold underline">Clear all filters</button>
+                  <button 
+                    onClick={() => {setSearchQuery(""); setSelectedCity("All Pakistan")}} 
+                    className="mt-4 text-green-700 font-semibold underline hover:text-green-800"
+                  >
+                    Clear all filters
+                  </button>
                 </div>
               )}
             </>
