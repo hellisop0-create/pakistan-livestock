@@ -14,13 +14,13 @@
   "categories": ["business", "shopping"],
   "icons": [
     {
-      "src": "public/192img.png",
+      "src": "192img.png",
       "sizes": "192x192",
       "type": "image/png",
       "purpose": "any"
     },
     {
-      "src": "public/512img.png",
+      "src": "512img.png",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "any"
