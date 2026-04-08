@@ -40,13 +40,25 @@ export default function App() {
                       <span className="text-4xl">⚠️</span>
                     </div>
                   </div>
-                  <h2 className="text-2xl font-extrabold text-gray-900 mb-2">Caution Notice</h2>
-                  <p className="text-gray-600 mb-8 leading-relaxed">
-                    1. Make sure to meet the Buyer/Seller in the public/crowded place. 
-                    2. Do not pay anything in advance.
-                    3. Do not post anything prohibited on this website.
-                    <h2 className="text-m font-extrabold text-gray-900 mb-2">Pakistan Livestock Mandi and Admins are not responsible for any kind of scam</h2>
-                  </p>
+                  <h2 className="text-2xl font-extrabold text-gray-900 mb-4 text-center w-full">
+                    Caution Notice
+                  </h2>
+                  
+                  <ol className="text-gray-600 mb-8 leading-relaxed text-left w-full space-y-3 px-2">
+                    <li className="flex gap-2">
+                      <span className="font-bold">1.</span>
+                      <span>Make sure to meet the Buyer/Seller in the public/crowded place.</span>
+                    </li>
+                    <li className="flex gap-2">
+                      <span className="font-bold">2.</span>
+                      <span>Do not pay anything in advance.</span>
+                    </li>
+                    <li className="flex gap-2">
+                      <span className="font-bold">3.</span>
+                      <span>Do not post anything prohibited on this website.</span>
+                    </li>
+                  </ol>
+                  <h3 className="text-m font-extrabold text-gray-900 mb-2">Pakistan Livestock Mandi and Admins are not responsible for any kind of scam</h3>
                   <button
                     onClick={() => setShowCaution(false)}
                     className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-4 rounded-xl transition-all active:scale-95 shadow-lg"
