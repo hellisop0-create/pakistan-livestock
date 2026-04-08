@@ -37,10 +37,10 @@ export default function Hero() {
           className="mb-10"
         >
           <h1 className="text-4xl md:text-6xl font-extrabold text-white mb-4 tracking-tight">
-            Find everything in <span className="text-green-400">Pakistan</span>
+            Pakistan Livestock <span className="text-green-400">Mandi</span>
           </h1>
           <p className="text-green-100 text-lg opacity-90">
-            Buy and Sell Livestock Easily.
+            پاکستان لائیوسٹاک منڈی - پاکستان کا منفرد ڈیجیٹل (آن لائن) مویشی منڈی
           </p>
         </motion.div>
 
