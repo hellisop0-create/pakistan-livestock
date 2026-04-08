@@ -14,7 +14,7 @@ export default function Footer() {
           <div className="space-y-4">
             <div className="flex items-center space-x-2">
               <img 
-              src="https://i.postimg.cc/3NczPCmQ/logo.png" 
+              src="https://i.postimg.cc/XqPhq5Dy/logo.png" 
               alt="Logo" 
               className="h-10 w-auto object-contain" 
             />
@@ -64,23 +64,19 @@ export default function Footer() {
             <ul className="space-y-4 text-green-100 text-sm">
               <li className="flex items-start space-x-3">
                 <MapPin className="w-5 h-5 flex-shrink-0" />
-                <span>Hyderabad, Sindh, Pakistan</span>
-              </li>
-              <li className="flex items-center space-x-3">
-                <Phone className="w-5 h-5 flex-shrink-0" />
-                <span>+92 317 3916434</span>
+                <span>DHA Phase II, Karachi, Sindh, Pakistan</span>
               </li>
               <li className="flex items-center space-x-3">
                 <Mail className="w-5 h-5 flex-shrink-0" />
-                <span>PakistanLivestockMandi.com</span>
+                <span>PakistanLivestockMandi@gmail.com</span>
               </li>
             </ul>
           </div>
         </div>
 
         <div className="pt-8 border-t border-white/10 text-center text-green-200 text-xs">
-          <p>&copy; {new Date().getFullYear()} Livestock Mandi. All rights reserved.</p>
-          <p className="mt-2">Designed for high-conversion livestock trading in Pakistan.</p>
+          <p>&copy; {new Date().getFullYear()} Pakistan Livestock Mandi. All rights reserved.</p>
+          <p className="mt-2">Designed by DSACSON for high-conversion livestock trading in Pakistan.</p>
         </div>
       </div>
     </footer>
