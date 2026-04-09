@@ -189,7 +189,6 @@ export default function Messages() {
         <div className="pt-6 px-6 pb-4 border-b border-gray-100 flex-shrink-0">
           <div className="flex items-center justify-between mb-5">
             <div className="flex items-center gap-3">
-              {/* Back Logo - Only visible on Mobile/Tablet */}
               <Link to="/" className="md:hidden p-1.5 -ml-1 hover:bg-gray-100 rounded-full text-gray-900 transition-colors inline-flex items-center justify-center">
                 <ArrowLeft size={24} />
               </Link>
@@ -281,13 +280,13 @@ export default function Messages() {
             <div className="bg-white border-b border-gray-100 shadow-sm z-30 flex-shrink-0">
               <div className="px-4 md:px-6 py-3 md:py-4 flex items-center justify-between relative">
                 <div className="flex items-center gap-3 min-w-0">
-                  {/* Back button visible only on mobile and tablet screens */}
+                  {/* Back button logic for mobile and tablet only */}
                   <button 
                     onClick={() => setActiveChat(null)} 
-                    className="md:hidden p-2 -ml-2 text-gray-700 hover:bg-gray-100 rounded-full transition-colors flex-shrink-0"
-                    aria-label="Back to chats"
+                    className="md:hidden p-2 -ml-2 text-gray-900 bg-gray-100 hover:bg-gray-200 rounded-full transition-all flex items-center justify-center"
+                    style={{ display: 'flex' }}
                   >
-                    <ChevronLeft size={24} strokeWidth={2.5} />
+                    <ChevronLeft size={24} strokeWidth={3} />
                   </button>
                   
                   <div className="w-9 h-9 md:w-10 md:h-10 rounded-full bg-gradient-to-br from-green-600 to-green-800 text-white flex items-center justify-center font-bold shadow-sm flex-shrink-0">
