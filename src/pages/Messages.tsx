@@ -187,11 +187,14 @@ export default function Messages() {
       {/* Sidebar */}
       <div className={`w-full md:w-[380px] border-r border-gray-100 flex flex-col bg-white h-full shadow-sm transition-all duration-300 ${activeChat ? 'hidden md:flex' : 'flex'}`}>
         <div className="pt-6 px-6 pb-4 border-b border-gray-100 flex-shrink-0">
-          <div className="flex items-center gap-3 mb-5">
-            <Link to="/chats" className="md:hidden p-2 -ml-2 hover:bg-gray-100 rounded-full text-gray-900 transition-colors">
-              <ArrowLeft size={24} />
-            </Link>
-            <h1 className="text-2xl font-black text-gray-900 tracking-tight">Messages</h1>
+          <div className="flex items-center justify-between mb-5">
+            <div className="flex items-center gap-3">
+              {/* Back Logo - Only visible on Mobile/Tablet */}
+              <Link to="/" className="md:hidden p-1.5 -ml-1 hover:bg-gray-100 rounded-full text-gray-900 transition-colors inline-flex items-center justify-center">
+                <ArrowLeft size={24} />
+              </Link>
+              <h1 className="text-2xl font-black text-gray-900 tracking-tight">Messages</h1>
+            </div>
           </div>
           <div className="flex bg-gray-100 p-1 rounded-xl relative">
             <button onClick={() => setChatFilter('all')} className={`flex-1 flex items-center justify-center gap-2 py-2.5 text-[11px] font-black uppercase rounded-lg transition-all duration-300 ${chatFilter === 'all' ? 'bg-white text-green-700 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}>
