@@ -3,6 +3,7 @@ import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { AuthProvider } from './contexts/AuthContext';
 import { LanguageProvider } from './contexts/LanguageContext';
 import Messages from './pages/Messages';
+import ChatFAB from './components/ChatFAB'; // <--- 1. Import the component
 
 // Components
 import Navbar from './components/Navbar';
@@ -15,7 +16,7 @@ import Home from './pages/Home';
 import Browse from './pages/Browse';
 import AdDetail from './pages/AdDetail';
 import PostAd from './pages/PostAd';
-import EditAd from './pages/EditAd'; // Fixed relative path
+import EditAd from './pages/EditAd'; 
 import Profile from './pages/Profile';
 import SearchPage from './pages/SearchPage';
 import Admin from './pages/Admin';
@@ -32,7 +33,7 @@ export default function App() {
 
           <div className="min-h-screen flex flex-col bg-gray-50 font-sans relative">
             
-            {/* Caution Popup - Glass Overlay */}
+            {/* Caution Popup */}
             {showCaution && (
               <div className="fixed inset-0 z-[9999] flex items-center justify-center backdrop-blur-md bg-white/30 p-4">
                 <div className="bg-white border border-gray-100 rounded-2xl shadow-2xl max-w-md w-full p-8 text-center ring-1 ring-black/5">
@@ -44,7 +45,6 @@ export default function App() {
                   <h2 className="text-2xl font-extrabold text-gray-900 mb-4 text-center w-full">
                     Caution Notice
                   </h2>
-                  
                   <ol className="text-gray-600 mb-8 leading-relaxed text-left w-full space-y-3 px-2">
                     <li className="flex gap-2">
                       <span className="font-bold">1.</span>
@@ -70,37 +70,29 @@ export default function App() {
               </div>
             )}
 
-            {/* Header / Navigation */}
             <Navbar />
 
-            {/* Main Content Area */}
             <main className="flex-grow">
               <Routes>
-                {/* Public Routes */}
                 <Route path="/" element={<Home />} />
                 <Route path="/messages" element={<Messages />} />
                 <Route path="/search" element={<SearchPage />} />
                 <Route path="/browse" element={<Browse />} />
                 <Route path="/ad/:id" element={<AdDetail />} />
-
-                {/* User Action Routes */}
                 <Route path="/post-ad" element={<PostAd />} />
                 <Route path="/edit-ad/:id" element={<EditAd />} />
                 <Route path="/profile" element={<Profile />} />
-                
-                {/* Admin Routes */}
                 <Route path="/admin-login" element={<AdminLogin />} />
                 <Route path="/admin" element={<Admin />} />
-
-                {/* Catch-all: You could add a 404 page here later */}
                 <Route path="*" element={<Home />} />
               </Routes>
             </main>
 
-            {/* Footer */}
+            {/* 2. Place ChatFAB here (Outside <Routes> but inside <Router>) */}
+            <ChatFAB />
+
             <Footer />
 
-            {/* Notifications Overlay */}
             <Toaster position="top-center" richColors closeButton />
           </div>
         </Router>
