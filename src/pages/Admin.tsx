@@ -1,11 +1,11 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { collection, onSnapshot, doc, deleteDoc, updateDoc } from 'firebase/firestore';
 import { db } from '../firebase';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import {
   Trash2, LayoutDashboard, Users, Star, 
-  CheckCircle2, XCircle, ExternalLink
+  CheckCircle2, XCircle, ExternalLink, Search
 } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -21,6 +21,7 @@ export default function Admin() {
   const [ads, setAds] = useState<any[]>([]);
   const [users, setUsers] = useState<any[]>([]);
   const [activeTab, setActiveTab] = useState<'ads' | 'users'>('ads');
+  const [searchId, setSearchId] = useState('');
 
   const currentUserEmail = user?.email?.toLowerCase().trim();
   const isAdmin = isAuthAdmin || (currentUserEmail && ADMIN_EMAILS.includes(currentUserEmail));
@@ -41,6 +42,11 @@ export default function Admin() {
     );
     return () => { unsubAds(); unsubUsers(); };
   }, [isAdmin]);
+
+  const filteredAds = useMemo(() => {
+    if (!searchId.trim()) return ads;
+    return ads.filter(ad => ad.id.toLowerCase().includes(searchId.toLowerCase().trim()));
+  }, [ads, searchId]);
 
   const handleUpdateStatus = async (id: string, s: 'active' | 'declined') => {
     try { 
@@ -73,14 +79,29 @@ export default function Admin() {
         
         {/* HEADER */}
         <div className="flex flex-col space-y-4 mb-6">
-          <div className="text-center md:text-left">
-            <h1 className="text-2xl sm:text-4xl font-black text-gray-900 uppercase">Admin Panel</h1>
-            <p className="text-gray-400 text-[10px] font-bold uppercase tracking-widest">Operations Dashboard</p>
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+            <div className="text-center md:text-left">
+              <h1 className="text-2xl sm:text-4xl font-black text-gray-900 uppercase">Admin Panel</h1>
+              <p className="text-gray-400 text-[10px] font-bold uppercase tracking-widest">Operations Dashboard</p>
+            </div>
+
+            {activeTab === 'ads' && (
+              <div className="relative w-full md:w-80">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={14} />
+                <input 
+                  type="text"
+                  placeholder="SEARCH BY AD ID..."
+                  value={searchId}
+                  onChange={(e) => setSearchId(e.target.value)}
+                  className="w-full pl-9 pr-4 py-2 bg-white border border-gray-200 rounded-xl text-[10px] font-black uppercase focus:ring-2 focus:ring-green-500 focus:outline-none shadow-sm"
+                />
+              </div>
+            )}
           </div>
 
           <div className="flex bg-white p-1 rounded-xl border shadow-sm w-full overflow-x-auto">
             <button onClick={() => setActiveTab('ads')} className={`flex-1 flex items-center justify-center gap-2 px-4 py-2 rounded-lg font-black text-[10px] uppercase transition-all ${activeTab === 'ads' ? 'bg-green-600 text-white' : 'text-gray-400'}`}>
-              <LayoutDashboard size={14} /> Listings ({ads.length})
+              <LayoutDashboard size={14} /> Listings ({filteredAds.length})
             </button>
             <button onClick={() => setActiveTab('users')} className={`flex-1 flex items-center justify-center gap-2 px-4 py-2 rounded-lg font-black text-[10px] uppercase transition-all ${activeTab === 'users' ? 'bg-green-600 text-white' : 'text-gray-400'}`}>
               <Users size={14} /> Sellers ({users.length})
@@ -90,12 +111,13 @@ export default function Admin() {
 
         {/* MOBILE LIST */}
         <div className="block lg:hidden space-y-3">
-          {activeTab === 'ads' ? ads.map(ad => (
+          {activeTab === 'ads' ? filteredAds.map(ad => (
             <div key={ad.id} className="bg-white p-4 rounded-2xl border border-gray-200 shadow-sm">
               <div className="flex gap-3 items-start mb-3">
                 <img src={ad.images?.[0]} className="w-16 h-16 rounded-lg object-cover bg-gray-100 flex-shrink-0 border" />
                 <div className="flex-1 min-w-0">
                   <h3 className="font-bold text-gray-900 text-sm truncate">{ad.title}</h3>
+                  <p className="text-[9px] text-blue-500 font-mono mb-1">ID: {ad.id}</p>
                   <p className="text-green-600 font-black text-xs">Rs {Number(ad.price).toLocaleString()}</p>
                   <div className="flex gap-2 items-center flex-wrap">
                     <span className={`mt-1 text-[8px] font-black px-2 py-0.5 rounded border uppercase ${ad.status === 'active' ? 'bg-green-50 text-green-600 border-green-200' : 'bg-red-50 text-red-600 border-red-200'}`}>
@@ -149,7 +171,7 @@ export default function Admin() {
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-50">
-              {activeTab === 'ads' ? ads.map(ad => (
+              {activeTab === 'ads' ? filteredAds.map(ad => (
                 <tr key={ad.id} className="hover:bg-gray-50/50 transition-colors">
                   <td className="p-5">
                     <div className="flex items-center gap-4">
@@ -209,7 +231,6 @@ export default function Admin() {
             </tbody>
           </table>
         </div>
-
       </div>
     </div>
   );
