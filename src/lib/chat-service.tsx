@@ -1,17 +1,18 @@
 import { 
-  collection, 
-  addDoc, 
-  query, 
-  where, 
-  getDocs, 
-  serverTimestamp, 
-  updateDoc, 
-  doc 
+  collection, addDoc, query, where, getDocs, 
+  serverTimestamp, updateDoc, doc 
 } from 'firebase/firestore';
 import { db } from '../firebase';
 
-export const getOrCreateChat = async (buyerUid: string, sellerUid: string, adId: string, adTitle: string, sellerName: string) => {
+export const getOrCreateChat = async (
+  buyerUid: string, 
+  sellerUid: string, 
+  adId: string, 
+  adTitle: string, 
+  sellerName: string 
+) => {
   const chatsRef = collection(db, 'chats');
+  
   const q = query(
     chatsRef, 
     where('adId', '==', adId), 
@@ -24,12 +25,12 @@ export const getOrCreateChat = async (buyerUid: string, sellerUid: string, adId:
     return querySnapshot.docs[0].id;
   }
 
-  // Create new chat if it doesn't exist
+  // Creating the chat with sellerName metadata
   const newChat = await addDoc(chatsRef, {
     participants: [buyerUid, sellerUid],
     adId,
     adTitle,
-    sellerName, // Store seller name for the header
+    sellerName, 
     lastMessage: '',
     updatedAt: serverTimestamp(),
   });
@@ -38,15 +39,13 @@ export const getOrCreateChat = async (buyerUid: string, sellerUid: string, adId:
 };
 
 export const sendMessage = async (chatId: string, senderId: string, text: string) => {
-  // 1. Add the message with 'sent' status
   await addDoc(collection(db, 'chats', chatId, 'messages'), {
     text,
     senderId,
     timestamp: serverTimestamp(),
-    status: 'sent' // 'sent', 'delivered', or 'seen'
+    status: 'sent' // Initial status for single tick
   });
 
-  // 2. Update the main chat doc for the sidebar preview
   const chatRef = doc(db, 'chats', chatId);
   await updateDoc(chatRef, {
     lastMessage: text,

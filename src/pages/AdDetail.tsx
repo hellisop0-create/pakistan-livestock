@@ -16,11 +16,28 @@ import AdCard from '../components/AdCard';
 import { motion, AnimatePresence } from 'framer-motion';
 import { toast } from 'sonner';
 
-export default function AdDetail() {
-  const { id } = useParams<{ id: string }>();
-  const { user } = useAuth();
-  const { t } = useLanguage();
-  const navigate = useNavigate();
+const handleStartChat = async () => {
+    if (!user) {
+      toast.error("Please login to message the seller");
+      return;
+    }
+
+    try {
+      // Pass the ad.sellerName specifically so the Messages page can see it
+      const chatId = await getOrCreateChat(
+        user.uid, 
+        ad.sellerUid, 
+        ad.id, 
+        ad.title,
+        ad.sellerName || "Seller" 
+      );
+      
+      navigate('/messages', { state: { selectedChatId: chatId } });
+    } catch (error) {
+      console.error("Chat Error:", error);
+      toast.error("Could not start chat. Please try again.");
+    }
+  };
 
   const [ad, setAd] = useState<any | null>(null);
   const [relatedAds, setRelatedAds] = useState<Ad[]>([]);
