@@ -30,28 +30,46 @@ export default function Messages() {
   const scrollToBottom = () => messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   useEffect(() => { scrollToBottom(); }, [messages]);
 
+  // Unified Cooldown Logic
   const getCooldownStatus = (chat: any) => {
-  // Check if the map and the specific user's timestamp exist
-  if (!chat?.leftAt || !user?.uid || !chat.leftAt[user.uid]) {
-    return { isRestricted: false, remainingHours: 0 };
-  }
+    if (!chat?.leftAt || !user?.uid || !chat.leftAt[user.uid]) {
+      return { isRestricted: false, remainingHours: 0 };
+    }
 
-  const userLeftAt = chat.leftAt[user.uid];
-  
-  // Ensure we can parse the date regardless of whether it's ISO string or Firestore Timestamp
-  const leftTime = new Date(userLeftAt).getTime();
-  const TWELVE_HOURS = 12 * 60 * 60 * 1000;
-  const now = Date.now();
-  
-  const diff = now - leftTime;
-  const isRestricted = diff < TWELVE_HOURS;
-  
-  // Calculate remaining time
-  const remainingMillis = TWELVE_HOURS - diff;
-  const remainingHours = Math.ceil(remainingMillis / (1000 * 60 * 60));
+    const userLeftAt = chat.leftAt[user.uid];
+    const leftTime = new Date(userLeftAt).getTime();
+    const TWELVE_HOURS = 12 * 60 * 60 * 1000;
+    const now = Date.now();
+    
+    const diff = now - leftTime;
+    const isRestricted = diff < TWELVE_HOURS;
+    const remainingMillis = TWELVE_HOURS - diff;
+    const remainingHours = Math.ceil(remainingMillis / (1000 * 60 * 60));
 
-  return { isRestricted, remainingHours };
-};
+    return { isRestricted, remainingHours: Math.max(0, remainingHours) };
+  };
+
+  // Unified Leave Chat Logic
+  const handleLeaveChatAction = async (chatToLeave: any) => {
+    if (!chatToLeave || !user) return;
+    
+    const warningText = "After leaving, you can't chat for 12 hours. Proceed?";
+    if (!window.confirm(warningText)) return;
+    
+    try {
+      await updateDoc(doc(db, 'chats', chatToLeave.id), {
+        [`leftAt.${user.uid}`]: new Date().toISOString()
+      });
+      
+      setOpenSidebarMenu(null);
+      setShowMenu(false);
+      if (activeChat?.id === chatToLeave.id) setActiveChat(null);
+      
+      toast.success("Left chat. 12h cooldown active.");
+    } catch (error) {
+      toast.error("Action failed");
+    }
+  };
 
   const handleDeleteChat = async (e: React.MouseEvent, chatId: string) => {
     e.stopPropagation();
@@ -82,32 +100,6 @@ export default function Messages() {
     } catch (error) { toast.error("Action failed"); }
   };
 
-  // Add serverTimestamp to your firebase/firestore imports at the top
-// import { ..., serverTimestamp } from 'firebase/firestore';
-
-const handleLeaveChat = async () => {
-  if (!activeChat || !user) return;
-  const warningText = "After leaving, you can't chat for 12 hours. Proceed?";
-  if (!window.confirm(warningText)) return;
-  
-  try {
-    const chatRef = doc(db, 'chats', activeChat.id);
-    
-    // Update the record
-    await updateDoc(chatRef, {
-      [`leftAt.${user.uid}`]: new Date().toISOString() // Or serverTimestamp() if preferred
-    });
-
-    // Close the chat window immediately to trigger the "restricted" UI state on next open
-    setShowMenu(false);
-    setActiveChat(null); 
-    toast.success("Left chat. 12h cooldown active.");
-  } catch (error) {
-    console.error(error);
-    toast.error("Action failed");
-  }
-};
-
   // Syncs the list of chats
   useEffect(() => {
     if (!user) return;
@@ -123,7 +115,7 @@ const handleLeaveChat = async () => {
     });
   }, [user, activeChat?.id]);
 
-  // Fetch Ad details when activeChat changes
+  // Fetch Ad details
   useEffect(() => {
     if (!activeChat?.adId) { setActiveAd(null); return; }
     getDoc(doc(db, 'ads', activeChat.adId)).then(s => s.exists() && setActiveAd(s.data()));
@@ -148,11 +140,9 @@ const handleLeaveChat = async () => {
     await sendMessage(activeChat.id, user.uid, text);
   };
 
-  // Refined Buying/Selling logic
   const filteredChats = chats.filter(chat => {
     if (!user) return false;
     const isSeller = chat.sellerId === user.uid;
-
     if (chatFilter === 'selling') return isSeller;
     if (chatFilter === 'buying') return !isSeller;
     return true;
@@ -197,6 +187,7 @@ const handleLeaveChat = async () => {
                   <button onClick={(e) => { e.stopPropagation(); setOpenSidebarMenu(openSidebarMenu === chat.id ? null : chat.id); }} className="p-2 hover:bg-white rounded-full md:opacity-0 group-hover:opacity-100 transition-all text-gray-400 hover:text-gray-600 shadow-sm"><MoreVertical size={16} /></button>
                   {openSidebarMenu === chat.id && (
                     <div className="absolute right-0 mt-2 w-44 bg-white border border-gray-100 rounded-xl shadow-xl py-1.5 z-50 overflow-hidden">
+                      <button onClick={(e) => { e.stopPropagation(); handleLeaveChatAction(chat); }} className="w-full px-4 py-2.5 text-left text-xs font-bold text-gray-700 hover:bg-gray-50 flex items-center gap-2 transition-colors border-b border-gray-50"><LogOut size={14} /> Leave Chat</button>
                       <button onClick={(e) => handleDeleteChat(e, chat.id)} className="w-full px-4 py-2.5 text-left text-xs font-bold text-red-600 hover:bg-red-50 flex items-center gap-2 transition-colors"><Trash2 size={14} /> Delete Chat</button>
                     </div>
                   )}
@@ -225,7 +216,7 @@ const handleLeaveChat = async () => {
                   <button onClick={(e) => { e.stopPropagation(); setShowMenu(!showMenu); }} className="p-2.5 hover:bg-gray-100 rounded-full transition-colors text-gray-500"><MoreVertical size={20} /></button>
                   {showMenu && (
                     <div className="absolute right-0 mt-2 w-48 bg-white border border-gray-100 rounded-2xl shadow-xl py-1.5 z-[101] overflow-hidden">
-                      <button onClick={handleLeaveChat} className="w-full px-4 py-3 text-left text-sm font-bold text-gray-700 hover:bg-gray-50 flex items-center gap-3 transition-colors"><LogOut size={16} /> Leave Chat</button>
+                      <button onClick={() => handleLeaveChatAction(activeChat)} className="w-full px-4 py-3 text-left text-sm font-bold text-gray-700 hover:bg-gray-50 flex items-center gap-3 transition-colors"><LogOut size={16} /> Leave Chat</button>
                       <button onClick={handleBlockChat} className="w-full px-4 py-3 text-left text-sm font-bold text-red-600 hover:bg-red-50 flex items-center gap-3 transition-colors"><Ban size={16} /> Block User</button>
                     </div>
                   )}
