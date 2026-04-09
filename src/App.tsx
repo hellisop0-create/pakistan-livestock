@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { AuthProvider } from './contexts/AuthContext';
 import { LanguageProvider } from './contexts/LanguageContext';
+import Messages from './pages/Messages';
 
 // Components
 import Navbar from './components/Navbar';
@@ -77,6 +78,7 @@ export default function App() {
               <Routes>
                 {/* Public Routes */}
                 <Route path="/" element={<Home />} />
+                <Route path="/messages" element={<Messages />} />
                 <Route path="/search" element={<SearchPage />} />
                 <Route path="/browse" element={<Browse />} />
                 <Route path="/ad/:id" element={<AdDetail />} />
