@@ -150,32 +150,53 @@ export default function Messages() {
                 </div>
 
                 {/* 3-Dot Dropdown Trigger */}
-                <div className="relative">
-                  <button 
-                    onClick={() => setShowMenu(!showMenu)} 
-                    className="p-2 hover:bg-gray-100 rounded-full transition-colors"
-                  >
-                    <MoreVertical className="w-5 h-5 text-gray-400" />
-                  </button>
-                  
-                  {showMenu && (
-                    <div className="absolute right-0 mt-2 w-48 bg-white border border-gray-100 rounded-2xl shadow-xl py-2 z-50 overflow-hidden">
-                      <button 
-                        onClick={handleLeaveChat} 
-                        className="w-full px-4 py-3 text-left text-sm font-bold text-gray-600 hover:bg-gray-50 flex items-center gap-3"
-                      >
-                        <LogOut size={16} /> Leave Conversation
-                      </button>
-                      <button 
-                        onClick={handleBlockChat} 
-                        className="w-full px-4 py-3 text-left text-sm font-bold text-red-600 hover:bg-red-50 flex items-center gap-3 border-t border-gray-50"
-                      >
-                        <Ban size={16} /> Block User
-                      </button>
-                    </div>
-                  )}
-                </div>
-              </div>
+                {/* 3-Dot Dropdown Trigger */}
+<div className="relative">
+  <button 
+    onClick={(e) => {
+      e.stopPropagation(); // Prevents clicking the button from immediately closing the menu via the parent onClick
+      setShowMenu(!showMenu);
+    }} 
+    className="p-2 hover:bg-gray-100 rounded-full transition-colors relative z-40"
+  >
+    <MoreVertical className="w-5 h-5 text-gray-400" />
+  </button>
+  
+  {showMenu && (
+    <>
+      {/* Invisible Overlay to close menu when clicking anywhere else */}
+      <div 
+        className="fixed inset-0 z-[90]" 
+        onClick={() => setShowMenu(false)} 
+      />
+      
+      {/* The Actual Dropdown Box */}
+      <div className="absolute right-0 mt-2 w-52 bg-white border border-gray-200 rounded-2xl shadow-2xl py-2 z-[100] overflow-hidden">
+        <button 
+          onClick={(e) => {
+            e.stopPropagation();
+            handleLeaveChat();
+          }} 
+          className="w-full px-4 py-3 text-left text-sm font-bold text-gray-600 hover:bg-gray-50 flex items-center gap-3 transition-colors"
+        >
+          <LogOut size={16} className="text-gray-400" /> 
+          Leave Conversation
+        </button>
+
+        <button 
+          onClick={(e) => {
+            e.stopPropagation();
+            handleBlockChat();
+          }} 
+          className="w-full px-4 py-3 text-left text-sm font-bold text-red-600 hover:bg-red-50 flex items-center gap-3 border-t border-gray-100 transition-colors"
+        >
+          <Ban size={16} className="text-red-500" /> 
+          Block User
+        </button>
+      </div>
+    </>
+  )}
+</div>
 
               {/* Rich Ad Preview */}
               {activeAd && (
