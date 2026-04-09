@@ -1,15 +1,9 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { 
-  collection, query, where, orderBy, onSnapshot, 
-  limit, doc, writeBatch, getDocs 
-} from 'firebase/firestore';
+import { collection, query, where, orderBy, onSnapshot, limit, writeBatch, getDocs } from 'firebase/firestore';
 import { db } from '../firebase';
 import { useAuth } from '../contexts/AuthContext';
 import { sendMessage } from '../lib/chat-service';
-import { 
-  Send, ChevronLeft, MessageCircle, Search, 
-  MoreVertical, Check, CheckCheck, ExternalLink 
-} from 'lucide-react';
+import { Send, ChevronLeft, MessageCircle, Search, MoreVertical, Check, CheckCheck, ExternalLink } from 'lucide-react';
 import { useNavigate, Link, useLocation } from 'react-router-dom';
 
 export default function Messages() {
@@ -24,15 +18,10 @@ export default function Messages() {
   const scrollToBottom = () => messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   useEffect(() => { scrollToBottom(); }, [messages]);
 
-  // Handle Mark as Seen (Changes Ticks to Blue)
   useEffect(() => {
     if (!activeChat || !user) return;
     const markAsRead = async () => {
-      const q = query(
-        collection(db, 'chats', activeChat.id, 'messages'),
-        where('senderId', '!=', user.uid),
-        where('status', '!=', 'seen')
-      );
+      const q = query(collection(db, 'chats', activeChat.id, 'messages'), where('senderId', '!=', user.uid), where('status', '!=', 'seen'));
       const snapshot = await getDocs(q);
       if (snapshot.empty) return;
       const batch = writeBatch(db);
@@ -42,14 +31,12 @@ export default function Messages() {
     markAsRead();
   }, [activeChat, messages, user]);
 
-  // Load Chat List
   useEffect(() => {
     if (!user) return;
     const q = query(collection(db, 'chats'), where('participants', 'array-contains', user.uid), orderBy('updatedAt', 'desc'));
     return onSnapshot(q, (snapshot) => {
       const list = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
       setChats(list);
-      // Auto-open chat if coming from AdDetail
       const stateId = location.state?.selectedChatId;
       if (stateId && !activeChat) {
         const target = list.find(c => c.id === stateId);
@@ -58,7 +45,6 @@ export default function Messages() {
     });
   }, [user, location.state]);
 
-  // Load Messages
   useEffect(() => {
     if (!activeChat) return;
     const q = query(collection(db, 'chats', activeChat.id, 'messages'), orderBy('timestamp', 'asc'), limit(50));
@@ -70,35 +56,19 @@ export default function Messages() {
   const handleSend = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!inputText.trim() || !activeChat || !user) return;
-    const text = inputText;
-    setInputText('');
+    const text = inputText; setInputText('');
     await sendMessage(activeChat.id, user.uid, text);
-  };
-
-  // WhatsApp Ticks Component
-  const MessageStatus = ({ status, isMe }: { status: string, isMe: boolean }) => {
-    if (!isMe) return null;
-    if (status === 'seen') return <CheckCheck size={14} className="text-blue-400" />;
-    if (status === 'delivered') return <CheckCheck size={14} className="text-gray-400" />;
-    return <Check size={14} className="text-gray-400" />;
   };
 
   if (!user) return null;
 
   return (
-    <div className="fixed inset-0 flex overflow-hidden bg-white z-40">
-      {/* Sidebar */}
-      <div className={`w-full md:w-[380px] border-r flex flex-col bg-white h-full ${activeChat ? 'hidden md:flex' : 'flex'}`}>
-        <div className="p-6 border-b">
-          <h1 className="text-2xl font-black mb-6">Messages</h1>
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-            <input type="text" placeholder="Search..." className="w-full pl-10 pr-4 py-3 bg-gray-50 rounded-2xl outline-none" />
-          </div>
-        </div>
+    <div className="fixed inset-0 flex bg-white z-40">
+      <div className={`w-full md:w-[380px] border-r flex flex-col bg-white ${activeChat ? 'hidden md:flex' : 'flex'}`}>
+        <div className="p-6 border-b"><h1 className="text-2xl font-black mb-6">Messages</h1></div>
         <div className="flex-1 overflow-y-auto">
           {chats.map(chat => (
-            <div key={chat.id} onClick={() => setActiveChat(chat)} className={`p-4 mx-2 my-1 rounded-2xl cursor-pointer flex items-center gap-4 ${activeChat?.id === chat.id ? 'bg-green-50' : 'hover:bg-gray-50'}`}>
+            <div key={chat.id} onClick={() => setActiveChat(chat)} className={`p-4 mx-2 my-1 rounded-2xl cursor-pointer flex gap-4 ${activeChat?.id === chat.id ? 'bg-green-50' : 'hover:bg-gray-50'}`}>
               <div className="w-12 h-12 rounded-xl bg-green-100 flex items-center justify-center font-bold text-green-700 uppercase">{chat.adTitle?.charAt(0)}</div>
               <div className="flex-1 min-w-0"><h3 className="font-bold truncate text-sm">{chat.adTitle}</h3><p className="text-xs text-gray-500 truncate">{chat.lastMessage}</p></div>
             </div>
@@ -106,52 +76,42 @@ export default function Messages() {
         </div>
       </div>
 
-      {/* Main Chat View */}
-      <div className={`flex-1 flex flex-col bg-gray-50 h-full ${!activeChat ? 'hidden md:flex items-center justify-center' : 'flex'}`}>
+      <div className={`flex-1 flex flex-col bg-gray-50 ${!activeChat ? 'hidden md:flex items-center justify-center' : 'flex'}`}>
         {activeChat ? (
           <>
-            {/* STICKY HEADER WITH SELLER NAME & AD INFO */}
             <div className="bg-white px-6 py-3 border-b flex items-center justify-between shadow-sm z-10">
               <div className="flex items-center gap-3">
                 <button onClick={() => setActiveChat(null)} className="md:hidden p-2"><ChevronLeft /></button>
-                <div className="w-10 h-10 rounded-xl bg-green-700 text-white flex items-center justify-center font-bold">{(activeChat.sellerName || activeChat.adTitle)?.charAt(0)}</div>
+                <div className="w-10 h-10 rounded-xl bg-green-700 text-white flex items-center justify-center font-bold">{(activeChat.sellerName || "S").charAt(0)}</div>
                 <div className="min-w-0">
-                  <h3 className="font-black text-gray-900 leading-none truncate">{activeChat.sellerName || "Seller"}</h3>
+                  <h3 className="font-black text-gray-900 leading-none">{activeChat.sellerName || "Seller"}</h3>
                   <div className="flex items-center gap-2 mt-1">
                     <span className="text-[11px] font-bold text-gray-400 truncate max-w-[120px]">{activeChat.adTitle}</span>
                     <Link to={`/ad/${activeChat.adId}`} className="text-[9px] bg-green-600 text-white px-2 py-0.5 rounded font-black flex items-center gap-1">VIEW AD <ExternalLink size={10} /></Link>
                   </div>
                 </div>
               </div>
-              <MoreVertical className="w-5 h-5 text-gray-400" />
             </div>
 
-            {/* MESSAGE LIST */}
-            <div className="flex-1 overflow-y-auto p-4 md:p-8 space-y-4">
-              {messages.map((msg) => {
-                const isMe = msg.senderId === user.uid;
-                return (
-                  <div key={msg.id} className={`flex ${isMe ? 'justify-end' : 'justify-start'}`}>
-                    <div className={`max-w-[80%] p-3 rounded-2xl ${isMe ? 'bg-green-700 text-white rounded-tr-none' : 'bg-white text-gray-800 rounded-tl-none border border-gray-100'}`}>
-                      <p className="text-sm">{msg.text}</p>
-                      <div className="flex items-center justify-end gap-1 mt-1">
-                        <span className={`text-[9px] font-bold ${isMe ? 'text-green-100' : 'text-gray-400'}`}>{msg.timestamp?.toDate().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
-                        <MessageStatus status={msg.status} isMe={isMe} />
-                      </div>
+            <div className="flex-1 overflow-y-auto p-4 space-y-4">
+              {messages.map((msg) => (
+                <div key={msg.id} className={`flex ${msg.senderId === user.uid ? 'justify-end' : 'justify-start'}`}>
+                  <div className={`max-w-[80%] p-3 rounded-2xl ${msg.senderId === user.uid ? 'bg-green-700 text-white rounded-tr-none' : 'bg-white text-gray-800 rounded-tl-none border border-gray-100'}`}>
+                    <p className="text-sm">{msg.text}</p>
+                    <div className="flex items-center justify-end gap-1 mt-1">
+                      <span className="text-[9px] opacity-70">{msg.timestamp?.toDate().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+                      {msg.senderId === user.uid && (msg.status === 'seen' ? <CheckCheck size={14} className="text-blue-400" /> : <Check size={14} />)}
                     </div>
                   </div>
-                );
-              })}
+                </div>
+              ))}
               <div ref={messagesEndRef} />
             </div>
 
-            {/* INPUT */}
-            <div className="p-4 bg-white border-t">
-              <form onSubmit={handleSend} className="max-w-4xl mx-auto flex gap-3">
-                <input value={inputText} onChange={(e) => setInputText(e.target.value)} placeholder="Type a message..." className="flex-1 bg-gray-50 border border-gray-200 rounded-2xl px-4 py-3 text-sm outline-none" />
-                <button type="submit" className="bg-green-700 text-white p-4 rounded-2xl shadow-lg shadow-green-100 hover:scale-105 active:scale-95 transition-all"><Send size={20} /></button>
-              </form>
-            </div>
+            <form onSubmit={handleSend} className="p-4 bg-white border-t flex gap-3">
+              <input value={inputText} onChange={(e) => setInputText(e.target.value)} placeholder="Type a message..." className="flex-1 bg-gray-50 border rounded-2xl px-4 py-3 outline-none text-sm" />
+              <button type="submit" className="bg-green-700 text-white p-4 rounded-2xl"><Send size={20} /></button>
+            </form>
           </>
         ) : (
           <div className="text-center opacity-30"><MessageCircle size={60} className="mx-auto mb-4 text-green-700" /><p className="font-black uppercase tracking-widest text-sm">Select a Conversation</p></div>

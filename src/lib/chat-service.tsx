@@ -43,7 +43,7 @@ export const sendMessage = async (chatId: string, senderId: string, text: string
     text,
     senderId,
     timestamp: serverTimestamp(),
-    status: 'sent' // Initial status for single tick
+    status: 'sent' 
   });
 
   const chatRef = doc(db, 'chats', chatId);
