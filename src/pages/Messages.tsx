@@ -1,31 +1,69 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { 
   collection, query, where, orderBy, onSnapshot, 
-  limit, doc, writeBatch, getDocs, getDoc 
+  limit, doc, writeBatch, getDocs, getDoc, updateDoc, arrayRemove 
 } from 'firebase/firestore';
 import { db } from '../firebase';
 import { useAuth } from '../contexts/AuthContext';
 import { sendMessage } from '../lib/chat-service';
 import { 
   Send, ChevronLeft, MessageCircle, Search, 
-  MoreVertical, Check, CheckCheck, ExternalLink, MapPin
+  MoreVertical, Check, CheckCheck, ExternalLink, MapPin,
+  Ban, LogOut, ShieldAlert
 } from 'lucide-react';
 import { useNavigate, Link, useLocation } from 'react-router-dom';
+import { toast } from 'sonner';
 
 export default function Messages() {
   const { user } = useAuth();
   const location = useLocation();
   const [chats, setChats] = useState<any[]>([]);
   const [activeChat, setActiveChat] = useState<any>(null);
-  const [activeAd, setActiveAd] = useState<any>(null); // To store rich ad details
+  const [activeAd, setActiveAd] = useState<any>(null);
   const [messages, setMessages] = useState<any[]>([]);
   const [inputText, setInputText] = useState('');
+  const [showMenu, setShowMenu] = useState(false); // Controls the 3-dot dropdown
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const scrollToBottom = () => messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   useEffect(() => { scrollToBottom(); }, [messages]);
 
-  // Mark messages as seen
+  // --- MODERATION ACTIONS ---
+
+  const handleBlockChat = async () => {
+    if (!activeChat || !user) return;
+    if (!window.confirm("Block this user? You won't receive further messages from them in this chat.")) return;
+    
+    try {
+      await updateDoc(doc(db, 'chats', activeChat.id), {
+        status: 'blocked',
+        blockedBy: user.uid
+      });
+      toast.error("User Blocked");
+      setShowMenu(false);
+    } catch (error) {
+      toast.error("Action failed");
+    }
+  };
+
+  const handleLeaveChat = async () => {
+    if (!activeChat || !user) return;
+    if (!window.confirm("Leave this conversation? It will be hidden from your list.")) return;
+
+    try {
+      await updateDoc(doc(db, 'chats', activeChat.id), {
+        participants: arrayRemove(user.uid)
+      });
+      setActiveChat(null);
+      toast.success("Conversation removed");
+      setShowMenu(false);
+    } catch (error) {
+      toast.error("Action failed");
+    }
+  };
+
+  // --- DATA SYNC ---
+
   useEffect(() => {
     if (!activeChat || !user) return;
     const markAsRead = async () => {
@@ -43,7 +81,6 @@ export default function Messages() {
     markAsRead();
   }, [activeChat, messages, user]);
 
-  // Load Chat List
   useEffect(() => {
     if (!user) return;
     const q = query(collection(db, 'chats'), where('participants', 'array-contains', user.uid), orderBy('updatedAt', 'desc'));
@@ -58,22 +95,15 @@ export default function Messages() {
     });
   }, [user, location.state]);
 
-  // Fetch Full Ad Details for the Chat Header
   useEffect(() => {
-    if (!activeChat?.adId) {
-      setActiveAd(null);
-      return;
-    }
+    if (!activeChat?.adId) { setActiveAd(null); return; }
     const fetchAd = async () => {
       const adDoc = await getDoc(doc(db, 'ads', activeChat.adId));
-      if (adDoc.exists()) {
-        setActiveAd({ id: adDoc.id, ...adDoc.data() });
-      }
+      if (adDoc.exists()) setActiveAd({ id: adDoc.id, ...adDoc.data() });
     };
     fetchAd();
   }, [activeChat]);
 
-  // Load Messages
   useEffect(() => {
     if (!activeChat) return;
     const q = query(collection(db, 'chats', activeChat.id, 'messages'), orderBy('timestamp', 'asc'), limit(50));
@@ -84,7 +114,7 @@ export default function Messages() {
 
   const handleSend = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!inputText.trim() || !activeChat || !user) return;
+    if (!inputText.trim() || !activeChat || !user || activeChat.status === 'blocked') return;
     const text = inputText; setInputText('');
     await sendMessage(activeChat.id, user.uid, text);
   };
@@ -110,19 +140,44 @@ export default function Messages() {
       <div className={`flex-1 flex flex-col bg-gray-50 h-full ${!activeChat ? 'hidden md:flex items-center justify-center' : 'flex'}`}>
         {activeChat ? (
           <>
-            {/* STICKY RICH AD HEADER (The "Ad Preview" Section) */}
-            <div className="bg-white border-b shadow-sm z-20">
-              {/* Part 1: Seller Info */}
-              <div className="px-6 py-3 border-b flex items-center justify-between">
+            {/* STICKY HEADER WITH 3-DOT MENU */}
+            <div className="bg-white border-b shadow-sm z-30">
+              <div className="px-6 py-3 border-b flex items-center justify-between relative">
                 <div className="flex items-center gap-3">
                   <button onClick={() => setActiveChat(null)} className="md:hidden p-2 -ml-2"><ChevronLeft /></button>
                   <div className="w-9 h-9 rounded-lg bg-green-700 text-white flex items-center justify-center font-bold">{(activeChat.sellerName || "S").charAt(0)}</div>
                   <h3 className="font-black text-gray-900 leading-none">{activeChat.sellerName || "Seller"}</h3>
                 </div>
-                <MoreVertical className="w-5 h-5 text-gray-400" />
+
+                {/* 3-Dot Dropdown Trigger */}
+                <div className="relative">
+                  <button 
+                    onClick={() => setShowMenu(!showMenu)} 
+                    className="p-2 hover:bg-gray-100 rounded-full transition-colors"
+                  >
+                    <MoreVertical className="w-5 h-5 text-gray-400" />
+                  </button>
+                  
+                  {showMenu && (
+                    <div className="absolute right-0 mt-2 w-48 bg-white border border-gray-100 rounded-2xl shadow-xl py-2 z-50 overflow-hidden">
+                      <button 
+                        onClick={handleLeaveChat} 
+                        className="w-full px-4 py-3 text-left text-sm font-bold text-gray-600 hover:bg-gray-50 flex items-center gap-3"
+                      >
+                        <LogOut size={16} /> Leave Conversation
+                      </button>
+                      <button 
+                        onClick={handleBlockChat} 
+                        className="w-full px-4 py-3 text-left text-sm font-bold text-red-600 hover:bg-red-50 flex items-center gap-3 border-t border-gray-50"
+                      >
+                        <Ban size={16} /> Block User
+                      </button>
+                    </div>
+                  )}
+                </div>
               </div>
 
-              {/* Part 2: The Ad Snapshot (Mini AdDetail) */}
+              {/* Rich Ad Preview */}
               {activeAd && (
                 <div className="px-6 py-4 flex items-center justify-between bg-gray-50/50">
                   <div className="flex items-center gap-4">
@@ -148,7 +203,7 @@ export default function Messages() {
             </div>
 
             {/* MESSAGES */}
-            <div className="flex-1 overflow-y-auto p-4 md:p-8 space-y-4">
+            <div className="flex-1 overflow-y-auto p-4 md:p-8 space-y-4" onClick={() => setShowMenu(false)}>
               {messages.map((msg) => {
                 const isMe = msg.senderId === user.uid;
                 return (
@@ -170,20 +225,29 @@ export default function Messages() {
               <div ref={messagesEndRef} />
             </div>
 
-            {/* INPUTBAR */}
-            <div className="p-4 bg-white border-t">
-              <form onSubmit={handleSend} className="max-w-4xl mx-auto flex gap-3">
-                <input 
-                  value={inputText} 
-                  onChange={(e) => setInputText(e.target.value)} 
-                  placeholder="Ask about weight, age, or price..." 
-                  className="flex-1 bg-gray-50 border border-gray-200 rounded-2xl px-4 py-3 outline-none text-sm focus:ring-2 focus:ring-green-100 transition-all" 
-                />
-                <button type="submit" className="bg-green-700 text-white p-4 rounded-2xl shadow-lg shadow-green-100 active:scale-95 transition-all">
-                  <Send size={20} />
-                </button>
-              </form>
-            </div>
+            {/* INPUTBAR OR BLOCKED STATUS */}
+            {activeChat.status === 'blocked' ? (
+              <div className="p-6 bg-red-50 text-red-700 border-t flex items-center justify-center gap-3">
+                <ShieldAlert size={20} />
+                <p className="font-black text-xs uppercase tracking-widest text-center">
+                  This conversation is blocked and no longer accepting messages.
+                </p>
+              </div>
+            ) : (
+              <div className="p-4 bg-white border-t">
+                <form onSubmit={handleSend} className="max-w-4xl mx-auto flex gap-3">
+                  <input 
+                    value={inputText} 
+                    onChange={(e) => setInputText(e.target.value)} 
+                    placeholder="Type a message..." 
+                    className="flex-1 bg-gray-50 border border-gray-200 rounded-2xl px-4 py-3 outline-none text-sm focus:ring-2 focus:ring-green-100 transition-all" 
+                  />
+                  <button type="submit" className="bg-green-700 text-white p-4 rounded-2xl shadow-lg shadow-green-100 active:scale-95 transition-all">
+                    <Send size={20} />
+                  </button>
+                </form>
+              </div>
+            )}
           </>
         ) : (
           <div className="text-center opacity-20">
