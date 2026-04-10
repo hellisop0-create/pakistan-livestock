@@ -14,7 +14,7 @@ const ServicesPage = () => {
     {
       title: "Featured Ads",
       description: "Keep your listings at the top of search results and category pages for maximum views and faster conversions.",
-      image: "https://images.unsplash.com/photo-1460925895917-afdab827c52f?q=80&w=800&auto=format&fit=crop",
+      image: "https://i.postimg.cc/qRBkyKLQ/Untitled-design-(2).png",
       icon: <Star className="w-6 h-6 text-yellow-500" />
     },
     {

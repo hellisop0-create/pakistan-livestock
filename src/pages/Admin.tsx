@@ -5,7 +5,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import {
   Trash2, LayoutDashboard, Users, Star, 
-  CheckCircle2, XCircle, ExternalLink, Search
+  CheckCircle2, XCircle, ExternalLink, Search, BadgeCheck
 } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -60,6 +60,13 @@ export default function Admin() {
       await updateDoc(doc(db, 'ads', id), { isFeatured: !currentStatus });
       toast.success(!currentStatus ? 'Featured' : 'Unfeatured');
     } catch { toast.error('Failed to toggle feature'); }
+  };
+
+  const handleToggleVerified = async (uid: string, currentStatus: boolean) => {
+    try {
+      await updateDoc(doc(db, 'users', uid), { isVerified: !currentStatus });
+      toast.success(!currentStatus ? 'Seller Verified' : 'Verification Removed');
+    } catch { toast.error('Failed to update verification'); }
   };
 
   const handleDelete = async (type: 'ads' | 'users', id: string) => {
@@ -140,7 +147,7 @@ export default function Admin() {
               </div>
             </div>
           )) : users.map(u => (
-             <div key={u.uid} className="bg-white p-4 rounded-xl border flex items-center justify-between">
+              <div key={u.uid} className="bg-white p-4 rounded-xl border flex items-center justify-between">
                 <div className="flex items-center gap-3">
                   {(u.photoURL || u.image) ? (
                     <img src={u.photoURL || u.image} referrerPolicy="no-referrer" className="w-10 h-10 rounded-full object-cover border" />
@@ -150,12 +157,23 @@ export default function Admin() {
                     </div>
                   )}
                   <div className="flex flex-col min-w-0">
-                    <div className="text-sm font-bold truncate max-w-[120px]">{u.displayName || 'Seller'}</div>
+                    <div className="text-sm font-bold truncate max-w-[120px] flex items-center gap-1">
+                      {u.displayName || 'Seller'}
+                      {u.isVerified && <BadgeCheck size={14} className="text-blue-500 fill-blue-50" />}
+                    </div>
                     <div className="text-[10px] text-gray-400 truncate max-w-[120px]">{u.email}</div>
                   </div>
                 </div>
-                <button onClick={() => handleDelete('users', u.uid)} className="text-red-400 p-2"><Trash2 size={18} /></button>
-             </div>
+                <div className="flex items-center gap-2">
+                  <button 
+                    onClick={() => handleToggleVerified(u.uid, u.isVerified)} 
+                    className={`p-2 rounded-lg transition-colors ${u.isVerified ? 'bg-blue-100 text-blue-600' : 'bg-gray-100 text-gray-400'}`}
+                  >
+                    <BadgeCheck size={18} />
+                  </button>
+                  <button onClick={() => handleDelete('users', u.uid)} className="text-red-400 p-2"><Trash2 size={18} /></button>
+                </div>
+              </div>
           ))}
         </div>
 
@@ -216,7 +234,10 @@ export default function Admin() {
                           {u.displayName?.charAt(0) || 'U'}
                         </div>
                       )}
-                      <span className="font-bold text-sm text-gray-900">{u.displayName || 'Seller'}</span>
+                      <span className="font-bold text-sm text-gray-900 flex items-center gap-1">
+                        {u.displayName || 'Seller'}
+                        {u.isVerified && <BadgeCheck size={14} className="text-blue-500 fill-blue-50" />}
+                      </span>
                     </div>
                   </td>
                   <td className="p-5 text-sm text-gray-500">{u.email}</td>
@@ -224,7 +245,16 @@ export default function Admin() {
                     <span className="text-[10px] font-black bg-blue-50 text-blue-600 px-3 py-1 rounded-full border border-blue-100 uppercase">Seller</span>
                   </td>
                   <td className="p-5 text-right">
-                    <button onClick={() => handleDelete('users', u.uid)} className="text-red-400 hover:text-red-600 p-2"><Trash2 size={18} /></button>
+                    <div className="flex justify-end gap-2">
+                      <button 
+                        onClick={() => handleToggleVerified(u.uid, u.isVerified)} 
+                        className={`p-1 rounded hover:bg-blue-50 ${u.isVerified ? 'text-blue-600' : 'text-gray-300'}`}
+                        title="Toggle Verification"
+                      >
+                        <BadgeCheck size={18} />
+                      </button>
+                      <button onClick={() => handleDelete('users', u.uid)} className="text-red-400 hover:text-red-600 p-2"><Trash2 size={18} /></button>
+                    </div>
                   </td>
                 </tr>
               ))}
