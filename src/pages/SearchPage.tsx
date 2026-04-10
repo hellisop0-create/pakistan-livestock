@@ -7,21 +7,59 @@ import AdCard from '../components/AdCard';
 import { useLanguage } from '../contexts/LanguageContext';
 import { Search, MapPin, Filter, Package } from 'lucide-react';
 
-// ✅ ADD THIS FUNCTION (OSM API)
-async function searchLocationOSM(query) {
-  if (!query) return [];
-
-  const res = await fetch(
-    `https://nominatim.openstreetmap.org/search?q=${query}, Pakistan&format=json`,
-    {
-      headers: {
-        "User-Agent": "livestock-mandi-app (your@email.com)"
+// ✅ OSM API for geographical intelligence
+async function searchLocationOSM(queryTerm) {
+  if (!queryTerm) return [];
+  try {
+    const res = await fetch(
+      `https://nominatim.openstreetmap.org/search?q=${queryTerm}, Pakistan&format=json`,
+      {
+        headers: { "User-Agent": "livestock-mandi-app (support@mandi.com)" }
       }
-    }
-  );
+    );
+    const data = await res.json();
+    return data.map(item => item.display_name.toLowerCase());
+  } catch (err) {
+    console.error("OSM error:", err);
+    return [];
+  }
+}
 
-  const data = await res.json();
-  return data.map(item => item.display_name.toLowerCase());
+// ✅ Normalize strings for comparison
+function normalizeLocation(str) {
+  return str
+    .toLowerCase()
+    .replace(/[,]/g, '')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+// ✅ Tokenizer for partial matching
+function getTokens(str) {
+  return normalizeLocation(str).split(' ');
+}
+
+// ✅ Smart Logic to connect Search Terms to Ad Locations
+function smartLocationMatch(adLoc, searchLoc, osmLocations) {
+  const ad = normalizeLocation(adLoc);
+  const search = normalizeLocation(searchLoc);
+
+  // Direct containment
+  if (ad.includes(search) || search.includes(ad)) return true;
+
+  // Token matching (e.g., "DHA" matches "DHA Phase 1")
+  const adTokens = getTokens(ad);
+  const searchTokens = getTokens(search);
+  const tokenMatch = searchTokens.some(token => adTokens.includes(token));
+  if (tokenMatch) return true;
+
+  // OSM matching for broader regions
+  const osmMatch = osmLocations.some(loc => {
+    const norm = normalizeLocation(loc);
+    return norm.includes(ad) || ad.includes(norm);
+  });
+
+  return osmMatch;
 }
 
 export default function SearchPage() {
@@ -43,13 +81,9 @@ export default function SearchPage() {
       
       let osmLocations = [];
 
-      // ✅ ONLY call OSM if location exists
+      // Only fetch OSM intelligence if a specific location is selected
       if (locationTerm && locationTerm !== "All Pakistan") {
-        try {
-          osmLocations = await searchLocationOSM(locationTerm);
-        } catch (err) {
-          console.log("OSM error:", err);
-        }
+        osmLocations = await searchLocationOSM(locationTerm);
       }
 
       const filtered = allAds.filter(ad => {
@@ -60,13 +94,11 @@ export default function SearchPage() {
 
         const matchesSearch = adTitle.includes(searchQ);
 
+        // REPLACED WITH SMART MATCHING LOGIC
         const matchesLocation =
           !locationTerm ||
           locationTerm === "All Pakistan" ||
-          adLoc.includes(searchLoc) ||
-          searchLoc.includes(adLoc) ||
-          // ✅ NEW: match with OSM results
-          osmLocations.some(loc => loc.includes(adLoc) || adLoc.includes(loc));
+          smartLocationMatch(adLoc, searchLoc, osmLocations);
 
         return matchesSearch && matchesLocation;
       });
@@ -106,8 +138,6 @@ export default function SearchPage() {
 
       <div className="max-w-7xl mx-auto px-4 py-8">
         <div className="flex flex-col lg:flex-row gap-8">
-          
-          {/* Main Results Area */}
           <div className="flex-1">
             {loading ? (
               <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-6">
@@ -132,7 +162,7 @@ export default function SearchPage() {
                     </div>
                     <h3 className="text-xl font-bold text-gray-900 mb-2">No matching ads found</h3>
                     <p className="text-gray-500 max-w-xs mx-auto mb-8">
-                      Try adjusting your filters or searching in a different location.
+                      Try searching in a different area or using broader keywords.
                     </p>
                     <button 
                       onClick={() => window.location.href = '/search'}
