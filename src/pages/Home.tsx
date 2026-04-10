@@ -55,17 +55,25 @@ export default function Home() {
   }, []);
 
   // --- FILTERING LOGIC ---
-  const filteredLatestAds = latestAds.filter((ad) => {
-    const normalizedSearch = searchQuery.toLowerCase().trim();
-    const titleMatch = (ad.title || "").toLowerCase().includes(normalizedSearch);
-    const descMatch = (ad.description || "").toLowerCase().includes(normalizedSearch);
-    
-    const matchesSearch = titleMatch || descMatch;
-    const matchesCity = selectedCity === "All Pakistan" || 
-                        (ad.location || "").toLowerCase() === selectedCity.toLowerCase();
+  const filteredLatestAds = latestAds
+    .filter((ad) => {
+      const normalizedSearch = searchQuery.toLowerCase().trim();
+      const titleMatch = (ad.title || "").toLowerCase().includes(normalizedSearch);
+      const descMatch = (ad.description || "").toLowerCase().includes(normalizedSearch);
+      
+      const matchesSearch = titleMatch || descMatch;
+      const matchesCity = selectedCity === "All Pakistan" || 
+                          (ad.location || "").toLowerCase() === selectedCity.toLowerCase();
 
-    return matchesSearch && matchesCity;
-  });
+      return matchesSearch && matchesCity;
+    })
+    .sort((a, b) => {
+      // Priority 1: Featured ads always come first
+      if (a.isFeatured && !b.isFeatured) return -1;
+      if (!a.isFeatured && b.isFeatured) return 1;
+      // Priority 2: Keep the Firestore date order for items with same featured status
+      return 0;
+    });
 
   const toggleFavorite = async (adId: string) => {
     if (!user) return toast.error('Please login to favorite ads');
