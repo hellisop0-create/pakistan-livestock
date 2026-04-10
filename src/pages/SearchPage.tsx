@@ -103,7 +103,14 @@ export default function SearchPage() {
         return matchesSearch && matchesLocation;
       });
 
-      setAds(filtered);
+      // FULL EDITED LOGIC: Sort featured ads to the top before setting state
+      const sorted = filtered.sort((a, b) => {
+        const aFeatured = a.isFeatured ? 1 : 0;
+        const bFeatured = b.isFeatured ? 1 : 0;
+        return bFeatured - aFeatured;
+      });
+
+      setAds(sorted);
       setLoading(false);
     });
 
