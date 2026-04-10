@@ -3,7 +3,7 @@ import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { AuthProvider } from './contexts/AuthContext';
 import { LanguageProvider } from './contexts/LanguageContext';
 import Messages from './pages/Messages';
-<Route path="/services" element={<ServicesPage />} />
+import ServicesPage from './pages/ServicesPage';
 import ChatFAB from './components/ChatFAB'; // <--- 1. Import the component
 
 // Components

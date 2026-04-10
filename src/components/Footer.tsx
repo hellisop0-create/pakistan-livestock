@@ -13,11 +13,11 @@ export default function Footer() {
           {/* Brand */}
           <div className="space-y-4">
             <div className="flex items-center space-x-2">
-              <img 
-              src="https://i.postimg.cc/250vR7KM/logo.png" 
-              alt="Logo" 
-              className="h-10 w-auto object-contain" 
-            />
+              <img
+                src="https://i.postimg.cc/250vR7KM/logo.png"
+                alt="Logo"
+                className="h-10 w-auto object-contain"
+              />
               <span className="text-xl font-bold">{t('appName')}</span>
             </div>
             <p className="text-green-100 text-sm leading-relaxed">
@@ -57,7 +57,11 @@ export default function Footer() {
               <li><Link to="/browse?category=Sheep" className="hover:text-white transition-colors">Sheep</Link></li>
               <li><Link to="/browse?category=Camel" className="hover:text-white transition-colors">Camel</Link></li>
               <li><Link to="/browse?category=Others" className="hover:text-white transition-colors">Others</Link></li>
-              <li><Link to="src/pages/ServicesPage.tsx" className="hover:text-white transition-colors">Our Services</Link></li>
+              <li>
+                <Link to="pages/ServicesPage" className="hover:text-white transition-colors">
+                  Our Services
+                </Link>
+              </li>
             </ul>
           </div>
 
