@@ -11,7 +11,8 @@ import { getOrCreateChat } from '../lib/chat-service';
 import { 
   MapPin, Phone, MessageCircle, MessageSquare, ShieldCheck, Share2, 
   ChevronLeft, ChevronRight, Flag, Calendar, Weight, 
-  Activity, Info, Crown, Star, Hash, EyeOff, X, Maximize2, ZoomIn 
+  Activity, Info, Crown, Star, Hash, EyeOff, X, Maximize2, ZoomIn,
+  BadgeCheck
 } from 'lucide-react';
 import AdCard from '../components/AdCard';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -306,7 +307,7 @@ export default function AdDetail() {
                 <div className="overflow-hidden">
                   <div className="font-bold text-gray-900 flex items-center gap-1 truncate">
                     {ad.sellerName} 
-                    <ShieldCheck className="w-4 h-4 text-blue-500 shrink-0" />
+                    {ad.isVerified && <BadgeCheck className="w-4 h-4 text-blue-500 shrink-0 fill-blue-50" />}
                   </div>
                   <div className="text-xs text-gray-500 italic">Verified Mandi Seller</div>
                 </div>
