@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { collection, query, where, limit, orderBy, onSnapshot, doc, updateDoc, arrayUnion, arrayRemove } from 'firebase/firestore'; 
-import { db } from '../firebase';
+import { db } from '../firebase'; 
 import { Ad } from '../types';
 import Hero from '../components/Hero';
 import { useAuth } from '../contexts/AuthContext'; 
@@ -9,6 +9,7 @@ import AdCard from '../components/AdCard';
 import { useLanguage } from '../contexts/LanguageContext';
 import { motion } from 'motion/react';
 import { toast } from 'sonner'; 
+import { useNavigate } from 'react-router-dom';
 
 export default function Home() {
   const [latestAds, setLatestAds] = useState<Ad[]>([]);
@@ -21,6 +22,7 @@ export default function Home() {
 
   const { t } = useLanguage();
   const { user } = useAuth();
+  const navigate = useNavigate();
 
   // Sync favorites with user profile
   useEffect(() => {
@@ -104,9 +106,22 @@ export default function Home() {
       {/* MAIN RESULTS SECTION */}
       <section id="results-section" className="py-12">
         <div className="max-w-7xl mx-auto px-4">
-          <h2 className="text-2xl font-bold mb-8 text-gray-900">
-            {searchQuery || selectedCity !== "All Pakistan" ? "Search Results" : t('latest')}
-          </h2>
+          <div className="flex justify-between items-center mb-8">
+            <h2 className="text-2xl font-bold text-gray-900">
+              {searchQuery || selectedCity !== "All Pakistan" ? "Search Results" : t('latest')}
+            </h2>
+            
+            {/* View All Redirect Button */}
+            {!searchQuery && selectedCity === "All Pakistan" && (
+              <button 
+                type="button"
+                onClick={() => navigate('/all-listings')}
+                className="text-green-700 font-semibold hover:underline cursor-pointer"
+              >
+                View All
+              </button>
+            )}
+          </div>
           
           {loading ? (
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-6">
@@ -115,7 +130,8 @@ export default function Home() {
           ) : (
             <>
               <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-6">
-                {filteredLatestAds.map(ad => (
+                {/* Displaying first 8 ads as a preview */}
+                {filteredLatestAds.slice(0, 8).map(ad => (
                   <AdCard key={ad.id} ad={ad} isFavorite={favorites.includes(ad.id)} onToggleFavorite={() => toggleFavorite(ad.id)} />
                 ))}
               </div>
