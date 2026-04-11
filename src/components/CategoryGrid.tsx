@@ -2,6 +2,7 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 import { useLanguage } from '../contexts/LanguageContext';
 import { motion } from 'motion/react';
+import AdBanner from '../components/AdBanner'; // Added Import
 
 // Using Web URLs so Google AI Studio can display them immediately
 const categories = [
@@ -75,6 +76,11 @@ export default function CategoryGrid() {
             </motion.div>
           ))}
         </div>
+      </div>
+      
+      {/* AdBanner placed strictly under the category content */}
+      <div className="mt-8">
+        <AdBanner location="below_categories" />
       </div>
     </section>
   );
