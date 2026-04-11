@@ -57,7 +57,7 @@ const AdBanner = ({ location }) => {
         <img 
           src={ad.imageUrl} 
           alt={ad.title} 
-          className="w-full h-full object-cover object-center"
+          className="w-full h-full object-cover"
           /* 'object-contain' ensures the image fits inside without being cropped */
         />
       </div>

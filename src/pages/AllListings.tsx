@@ -96,7 +96,7 @@ export default function AllListings() {
 
                 {/* INJECT DYNAMIC ADVERTISEMENT AFTER 5TH AD (index 4) */}
                 {index === 4 && (
-                  <div className="w-full h-48 md:h-50 overflow-hidden rounded-xl my-4">
+                  <div className="w-full h-48 md:h-48 overflow-hidden rounded-xl my-4">
                     {/* Unique location tag ensures different ads from home page */}
                     <AdBanner location="listings_page" />
                   </div>
