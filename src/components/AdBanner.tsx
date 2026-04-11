@@ -50,15 +50,15 @@ const AdBanner = ({ location }) => {
   if (loading || !ad) return null;
 
   return (
-    <div className="w-full max-w-screen-xl mx-auto px-4 my-6">
-      <div 
-        onClick={handleAdClick}
-        className="relative cursor-pointer group overflow-hidden rounded-xl border border-gray-200 shadow-sm transition-all hover:shadow-md"
-      >
+    <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 my-8">
+      <div className="relative rounded-2xl overflow-hidden shadow-sm border border-gray-100 bg-gray-50 flex items-center justify-center h-40 md:h-64">
+        {/* The 'h-40 md:h-64' sets a standard height for the ad box */}
+        
         <img 
           src={ad.imageUrl} 
           alt={ad.title} 
-          className="w-full h-auto object-cover transform transition-transform duration-500 group-hover:scale-[1.02]"
+          className="max-w-full max-h-full object-contain" 
+          /* 'object-contain' ensures the image fits inside without being cropped */
         />
       </div>
     </div>
