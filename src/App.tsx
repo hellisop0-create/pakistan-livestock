@@ -26,6 +26,9 @@ import AllListings from './pages/AllListings';
 import Messages from './pages/Messages';
 import ServicesPage from './pages/ServicesPage';
 
+// billing
+import BillingPage from './pages/BillingPage';
+
 export default function App() {
   return (
     <LanguageProvider>
@@ -45,6 +48,7 @@ export default function App() {
                 <Route path="/search" element={<SearchPage />} />
                 <Route path="/admin" element={<Admin />} />
                 <Route path="/admin/login" element={<AdminLogin />} />
+                <Route path="/billing" element={<BillingPage />} />
                 <Route path="/all-listings" element={<AllListings />} />
                 <Route path="/messages" element={<Messages />} />
                 <Route path="/services" element={<ServicesPage />} />
