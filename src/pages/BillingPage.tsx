@@ -14,9 +14,9 @@ export default function BillingPage() {
   const adId = queryParams.get('adId');
 
   const plans = [
-    { id: 'basic', label: 'Basic Boost', urduLabel: 'بنیادی بوسٹ', days: 3, price: 500 },
-    { id: 'standard', label: 'Standard Pro', urduLabel: 'اسٹینڈرڈ پرو', days: 7, price: 1000 },
-    { id: 'gold', label: 'Gold Premium', urduLabel: 'گولڈ پریمیم', days: 30, price: 3500 },
+    { id: 'basic', label: 'Basic Boost', urduLabel: 'بنیادی بوسٹ', days: 3, price: 300 },
+    { id: 'standard', label: 'Standard Pro', urduLabel: 'اسٹینڈرڈ پرو', days: 7, price: 700 },
+    { id: 'gold', label: 'Gold Premium', urduLabel: 'گولڈ پریمیم', days: 30, price: 3000 },
   ];
 
   const [selectedPlan, setSelectedPlan] = useState(plans[1]);
