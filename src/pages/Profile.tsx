@@ -25,7 +25,8 @@ import {
   Edit3, 
   Eye,
   Settings,
-  Tag
+  Tag,
+  Zap // Imported for the Promote button
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { cn } from '../lib/utils';
@@ -234,6 +235,14 @@ export default function Profile() {
                             >
                               <Edit3 className="w-4 h-4" />
                               <span>Edit</span>
+                            </button>
+
+                            <button 
+                              onClick={() => navigate(`/services?adId=${ad.id}`)}
+                              className="flex items-center justify-center space-x-1 py-2.5 px-2 bg-amber-50 text-amber-700 rounded-xl hover:bg-amber-100 transition-colors text-sm font-bold border border-amber-100"
+                            >
+                              <Zap className="w-4 h-4 fill-amber-500 text-amber-500" />
+                              <span>Promote</span>
                             </button>
 
                             <button 
