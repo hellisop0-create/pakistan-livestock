@@ -4,7 +4,7 @@ import { db } from '../firebase';
 import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
 import { useAuth } from '../contexts/AuthContext';
 import { toast } from 'sonner';
-import { CreditCard, CheckCircle, ArrowLeft, Clock, Zap, PlayCircle, HelpCircle, Smartphone, Info } from 'lucide-react';
+import { Clock, Zap, PlayCircle, Info } from 'lucide-react';
 
 export default function BillingPage() {
   const { user } = useAuth();
@@ -51,7 +51,7 @@ export default function BillingPage() {
     }
   };
 
-  if (!adId) return <div className="p-20 text-center font-bold">Error: No Ad ID Linked / کوئی اشتہار منتخب نہیں کیا گیا</div>;
+  if (!adId) return <div className="p-20 text-center font-bold text-red-600">Error: No Ad ID Linked / کوئی اشتہار منتخب نہیں کیا گیا</div>;
 
   return (
     <div className="min-h-screen bg-gray-50 py-12 px-4">
@@ -61,8 +61,8 @@ export default function BillingPage() {
         <div className="space-y-6 order-2 lg:order-1">
           <div className="bg-white rounded-3xl shadow-xl overflow-hidden border border-gray-100">
             <div className="bg-green-700 p-6 text-white text-center">
-              <h1 className="text-xl font-bold">Feature Your Ad</h1>
-              <h2 className="text-lg font-medium mt-1" dir="rtl">اپنا اشتہار نمایاں کریں</h2>
+              <h1 className="text-xl font-bold uppercase tracking-wide">Checkout</h1>
+              <h2 className="text-lg font-medium mt-1" dir="rtl">ادائیگی کا طریقہ</h2>
             </div>
 
             <form onSubmit={handleSubmit} className="p-6 space-y-6">
@@ -96,33 +96,36 @@ export default function BillingPage() {
                 </div>
               </div>
 
-               <div className="space-y-4">
-            <h3 className="font-bold text-gray-900">1. Transfer Money</h3>
-            <div className="grid grid-cols-1 gap-3">
-              <div className="p-4 border rounded-2xl bg-gray-50">
-                <p className="text-xs text-gray-500 font-bold uppercase">JazzCash</p>
-                <p className="text-lg font-mono">0301-3551707</p>
-                <p className="text-sm text-gray-600">Account: BetailHub</p>
+              {/* Account Details */}
+              <div className="space-y-3">
+                <div className="flex justify-between items-center">
+                  <h3 className="font-bold text-gray-900 text-sm">1. Transfer Money / رقم بھیجیں</h3>
+                </div>
+                <div className="grid grid-cols-1 gap-3">
+                  <div className="p-4 border rounded-2xl bg-gray-50 border-gray-200 relative overflow-hidden">
+                    <div className="absolute top-0 right-0 bg-orange-500 text-white text-[10px] px-2 py-0.5 rounded-bl-lg font-bold">JazzCash</div>
+                    <p className="text-lg font-mono font-bold text-gray-800">0301-3551707</p>
+                    <p className="text-xs text-gray-600 font-medium uppercase tracking-tight">Account: BetailHub</p>
+                  </div>
+                  <div className="p-4 border rounded-2xl bg-gray-50 border-gray-200 relative overflow-hidden">
+                    <div className="absolute top-0 right-0 bg-green-500 text-white text-[10px] px-2 py-0.5 rounded-bl-lg font-bold">EasyPaisa</div>
+                    <p className="text-lg font-mono font-bold text-gray-800">0301-3551707</p>
+                    <p className="text-xs text-gray-600 font-medium uppercase tracking-tight">Account: BetailHub</p>
+                  </div>
+                </div>
               </div>
-              <div className="p-4 border rounded-2xl bg-gray-50">
-                <p className="text-xs text-gray-500 font-bold uppercase">EasyPaisa</p>
-                <p className="text-lg font-mono">0301-3551707</p>
-                <p className="text-sm text-gray-600">Account: BetailHub</p>
-              </div>
-            </div>
-          </div>
 
               {/* TID Input */}
-              <div className="space-y-3 bg-gray-50 p-4 rounded-2xl">
+              <div className="space-y-3 bg-gray-50 p-4 rounded-2xl border border-gray-200">
                 <div className="flex justify-between items-center">
-                   <label className="text-xs font-bold text-gray-700 uppercase">Transaction ID (TID)</label>
+                   <label className="text-xs font-bold text-gray-700 uppercase">2. Transaction ID (TID)</label>
                    <label className="text-xs font-bold text-gray-700" dir="rtl">ٹرانزیکشن آئی ڈی درج کریں</label>
                 </div>
                 <input 
                   type="text"
                   required
-                  placeholder="e.g. 0123456789"
-                  className="w-full p-4 border-2 rounded-xl focus:border-green-700 outline-none shadow-sm"
+                  placeholder="Enter 11 or 12 digit ID"
+                  className="w-full p-4 border-2 rounded-xl focus:border-green-700 outline-none shadow-sm transition-all font-mono"
                   value={tid}
                   onChange={(e) => setTid(e.target.value)}
                 />
@@ -131,7 +134,7 @@ export default function BillingPage() {
               <button 
                 type="submit"
                 disabled={isSubmitting}
-                className="w-full bg-green-700 text-white py-4 rounded-2xl font-bold text-lg hover:bg-green-800 transition-all flex flex-col items-center justify-center gap-0 shadow-lg"
+                className="w-full bg-green-700 text-white py-4 rounded-2xl font-bold text-lg hover:bg-green-800 transition-all flex flex-col items-center justify-center gap-0 shadow-lg active:scale-95 disabled:opacity-50"
               >
                 <div className="flex items-center gap-2">
                   <Zap className="w-5 h-5 fill-current" />
@@ -171,33 +174,30 @@ export default function BillingPage() {
             </div>
 
             <div className="space-y-6">
-              {/* Step 1 */}
               <div className="flex gap-4 border-b border-gray-50 pb-4">
                 <div className="w-10 h-10 rounded-full bg-green-100 text-green-700 flex items-center justify-center font-bold flex-shrink-0">1</div>
                 <div className="flex-1">
                   <p className="text-sm font-bold text-gray-900">Transfer Payment / رقم منتقل کریں</p>
-                  <p className="text-xs text-gray-500 mt-1">Send the selected plan amount to <span className="font-bold text-gray-700">0300-1234567</span> via JazzCash or EasyPaisa.</p>
-                  <p className="text-xs text-gray-600 mt-1 font-medium" dir="rtl">جاز کیش یا ایزی پیسہ کے ذریعے دیئے گئے نمبر پر رقم بھیجیں۔</p>
+                  <p className="text-xs text-gray-500 mt-1">Send Rs. <span className="font-bold">{selectedPlan.price}</span> to <span className="font-bold text-gray-700">0301-3551707</span> (BetailHub).</p>
+                  <p className="text-xs text-gray-600 mt-1 font-medium" dir="rtl">منتخب کردہ رقم (Rs. {selectedPlan.price}) دیئے گئے نمبر پر بھیجیں۔</p>
                 </div>
               </div>
 
-              {/* Step 2 */}
               <div className="flex gap-4 border-b border-gray-50 pb-4">
                 <div className="w-10 h-10 rounded-full bg-green-100 text-green-700 flex items-center justify-center font-bold flex-shrink-0">2</div>
                 <div className="flex-1">
                   <p className="text-sm font-bold text-gray-900">Get TID / ٹرانزیکشن آئی ڈی حاصل کریں</p>
-                  <p className="text-xs text-gray-500 mt-1">Copy the 11-12 digit TID from the confirmation SMS or App screen.</p>
-                  <p className="text-xs text-gray-600 mt-1 font-medium" dir="rtl">رقم بھیجنے کے بعد موصول ہونے والی ٹرانزیکشن آئی ڈی کاپی کریں۔</p>
+                  <p className="text-xs text-gray-500 mt-1">Copy the TID from the confirmation SMS you receive after transfer.</p>
+                  <p className="text-xs text-gray-600 mt-1 font-medium" dir="rtl">رقم بھیجنے کے بعد موصول ہونے والی ٹرانزیکشن آئی ڈی (TID) نوٹ کریں۔</p>
                 </div>
               </div>
 
-              {/* Step 3 */}
               <div className="flex gap-4">
                 <div className="w-10 h-10 rounded-full bg-green-100 text-green-700 flex items-center justify-center font-bold flex-shrink-0">3</div>
                 <div className="flex-1">
                   <p className="text-sm font-bold text-gray-900">Submit Form / فارم جمع کریں</p>
-                  <p className="text-xs text-gray-500 mt-1">Paste the TID in the form and click confirm. We will activate your ad shortly.</p>
-                  <p className="text-xs text-gray-600 mt-1 font-medium" dir="rtl">آئی ڈی یہاں درج کریں اور بٹن دبائیں۔ آپ کا اشتہار جلد ہی نمایاں کر دیا جائے گا۔</p>
+                  <p className="text-xs text-gray-500 mt-1">Paste the TID above and click confirm. Ad will be featured within 24 hours.</p>
+                  <p className="text-xs text-gray-600 mt-1 font-medium" dir="rtl">آئی ڈی یہاں درج کر کے بٹن دبائیں۔ آپ کا اشتہار 24 گھنٹے میں نمایاں ہو جائے گا۔</p>
                 </div>
               </div>
             </div>
