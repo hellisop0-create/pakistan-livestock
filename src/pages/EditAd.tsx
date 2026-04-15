@@ -94,14 +94,14 @@ export default function EditAd() {
 
     setUploadingImages(true);
     const newImages = [...formData.images];
-    const API_KEY = 'YOUR_IMGBB_API_KEY'; // Replace with your actual ImgBB Key
+    const API_KEY = 'https://api.cloudinary.com/v1_1/dmrgu1ebl/image/upload'; // Replace with your actual ImgBB Key
 
     try {
       for (let i = 0; i < files.length; i++) {
         const body = new FormData();
         body.append('image', files[i]);
         
-        const res = await fetch(`https://api.imgbb.com/1/upload?key=${API_KEY}`, {
+        const res = await fetch(`https://api.cloudinary.com/v1_1/dmrgu1ebl/image/upload`, {
           method: 'POST',
           body: body
         });
