@@ -90,32 +90,49 @@ export default function EditAd() {
 
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
-    if (!files) return;
+    if (!files || files.length === 0) return;
 
     setUploadingImages(true);
-    const newImages = [...formData.images];
-    const API_KEY = 'https://api.cloudinary.com/v1_1/dmrgu1ebl/image/upload'; // Replace with your actual ImgBB Key
+    
+    // Cloudinary Config
+    const CLOUD_NAME = 'dmrgu1ebl';
+    const UPLOAD_PRESET = 'ml_folder2'; // REPLACE THIS WITH YOUR PRESET NAME
 
     try {
+      const uploadedUrls: string[] = [];
+
       for (let i = 0; i < files.length; i++) {
         const body = new FormData();
-        body.append('image', files[i]);
+        body.append('file', files[i]);
+        body.append('upload_preset', UPLOAD_PRESET);
         
-        const res = await fetch(`https://api.cloudinary.com/v1_1/dmrgu1ebl/image/upload`, {
+        const res = await fetch(`https://api.cloudinary.com/v1_1/${CLOUD_NAME}/image/upload`, {
           method: 'POST',
           body: body
         });
+        
         const data = await res.json();
-        if (data.success) {
-          newImages.push(data.data.url);
+        
+        // Cloudinary returns 'secure_url' on success
+        if (data.secure_url) {
+          uploadedUrls.push(data.secure_url);
+        } else {
+          console.error("Cloudinary Error:", data.error?.message);
         }
       }
-      setFormData({ ...formData, images: newImages });
-      toast.success("Images uploaded");
+
+      if (uploadedUrls.length > 0) {
+        setFormData(prev => ({
+          ...prev,
+          images: [...prev.images, ...uploadedUrls]
+        }));
+        toast.success("Images uploaded");
+      }
     } catch (err) {
       toast.error("Image upload failed");
     } finally {
       setUploadingImages(false);
+      if (e.target) e.target.value = ''; // Reset input to allow re-selection
     }
   };
 
@@ -291,6 +308,7 @@ export default function EditAd() {
                 <button 
                   type="button" 
                   onClick={() => fileInputRef.current?.click()}
+                  disabled={uploadingImages}
                   className="flex aspect-square flex-col items-center justify-center rounded-xl border-2 border-dashed border-gray-300 text-gray-400 hover:border-green-500 hover:text-green-500"
                 >
                   {uploadingImages ? <Loader2 className="animate-spin" /> : <><ImageIcon size={24} /><span className="text-[10px] font-bold">Add Photo</span></>}
