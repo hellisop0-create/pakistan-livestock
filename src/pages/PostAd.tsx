@@ -7,7 +7,7 @@ import { useLanguage } from '../contexts/LanguageContext';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
-import { Camera, MapPin, Phone, AlertCircle, Loader2, X, Image as ImageIcon, Clock, EyeOff } from 'lucide-react';
+import { Camera, MapPin, Phone, AlertCircle, Loader2, X, Image as ImageIcon, Clock, EyeOff, Sparkles } from 'lucide-react';
 import { toast } from 'sonner';
 import { handleFirestoreError, OperationType } from '../lib/firestore-utils';
 
@@ -38,13 +38,17 @@ export default function PostAd() {
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
   const [previews, setPreviews] = useState<string[]>([]);
   const [showPhotoPopup, setShowPhotoPopup] = useState(false);
+  
+  // New States for Post Selection
+  const [showTypeSelection, setShowTypeSelection] = useState(false);
+  const [tempFormData, setTempFormData] = useState<AdFormData | null>(null);
 
   const { register, handleSubmit, formState: { errors } } = useForm<AdFormData>({
     resolver: zodResolver(adSchema),
     defaultValues: {
       category: 'Cow',
       phoneNumber: user?.phoneNumber || '',
-      hidePhoneNumber: false, // Default value
+      hidePhoneNumber: false,
     }
   });
 
@@ -85,12 +89,21 @@ export default function PostAd() {
     setPreviews(prev => prev.filter((_, i) => i !== index));
   };
 
+  // Logic to handle "Post Advertisement" Click
   const onSubmit = async (data: AdFormData) => {
     if (selectedFiles.length === 0) return toast.error("Please add at least one photo");
-    
+    setTempFormData(data);
+    setShowTypeSelection(true);
+  };
+
+  // Final Action handler for selection popup
+  const handleFinalUpload = async (isFeatured: boolean) => {
+    if (!tempFormData) return;
+    setShowTypeSelection(false);
     setLoading(true);
+
     try {
-      // Monthly Limit Check (Max 7 ads in 30 days)
+      // Monthly Limit Check
       const thirtyDaysAgo = new Date();
       thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
       
@@ -108,7 +121,6 @@ export default function PostAd() {
       }
 
       const uploadedUrls: string[] = [];
-
       for (const file of selectedFiles) {
         const formData = new FormData();
         formData.append('file', file);
@@ -120,30 +132,42 @@ export default function PostAd() {
         );
 
         if (!response.ok) throw new Error("Cloudinary upload failed");
-
         const resData = await response.json();
-        if (resData.secure_url) {
-          uploadedUrls.push(resData.secure_url);
-        }
+        if (resData.secure_url) uploadedUrls.push(resData.secure_url);
       }
 
       if (uploadedUrls.length === 0) throw new Error("No images were uploaded.");
 
-      try {
-        await addDoc(collection(db, 'ads'), {
-          ...data,
-          images: uploadedUrls,
-          sellerUid: user?.uid,
-          sellerName: user?.displayName || 'Seller',
-          status: 'pending',
-          createdAt: new Date().toISOString(),
+      if (isFeatured) {
+        // DIRECT REDIRECT TO CHECKOUT
+        navigate('/checkout', { 
+          state: { 
+            adData: { 
+              ...tempFormData, 
+              images: uploadedUrls, 
+              sellerUid: user.uid, 
+              sellerName: user.displayName || 'Seller',
+              isFeatured: true 
+            } 
+          } 
         });
-      } catch (error) {
-        handleFirestoreError(error, OperationType.WRITE, 'ads');
+      } else {
+        // FREE POST DIRECT TO FIRESTORE
+        try {
+          await addDoc(collection(db, 'ads'), {
+            ...tempFormData,
+            images: uploadedUrls,
+            sellerUid: user?.uid,
+            sellerName: user?.displayName || 'Seller',
+            status: 'pending',
+            isFeatured: false,
+            createdAt: new Date().toISOString(),
+          });
+          setShowSuccessModal(true);
+        } catch (error) {
+          handleFirestoreError(error, OperationType.WRITE, 'ads');
+        }
       }
-
-      setShowSuccessModal(true); 
-
     } catch (error: any) {
       console.error("Final Error:", error);
       toast.error(error.message || 'Failed to post ad.');
@@ -276,7 +300,6 @@ export default function PostAd() {
                 {errors.phoneNumber && <p className="text-red-500 text-xs mt-1">{errors.phoneNumber.message}</p>}
               </div>
 
-              {/* HIDE PHONE NUMBER TOGGLE */}
               <div className="sm:col-span-2 flex items-center justify-between p-4 bg-green-50/50 rounded-2xl border border-green-100">
                 <div className="flex items-center space-x-3">
                   <div className="p-2 bg-green-100 rounded-lg">
@@ -308,6 +331,49 @@ export default function PostAd() {
           </form>
         </div>
       </div>
+
+      {/* POPUP: SELECT POST TYPE */}
+      {showTypeSelection && (
+        <div className="fixed inset-0 z-[110] flex items-center justify-center p-4 bg-black/60 backdrop-blur-md">
+          <div className="bg-white w-full max-w-md rounded-[2.5rem] p-8 shadow-2xl">
+            <h3 className="text-2xl font-black text-gray-900 text-center mb-2">Choose Post Type</h3>
+            <p className="text-gray-500 text-center mb-8 text-sm">How would you like to list your animal?</p>
+            
+            <div className="space-y-4">
+              <button 
+                onClick={() => handleFinalUpload(true)}
+                className="w-full p-6 border-2 border-orange-500 bg-orange-50 rounded-3xl flex items-center justify-between hover:scale-[1.02] transition-transform text-left group"
+              >
+                <div>
+                  <div className="flex items-center space-x-2 mb-1">
+                    <Sparkles className="w-5 h-5 text-orange-600" />
+                    <span className="font-black text-orange-700 text-lg">Featured Post</span>
+                  </div>
+                  <p className="text-xs text-orange-600 font-medium">Sell 10x faster with top visibility for 7 days</p>
+                </div>
+                <div className="bg-orange-600 text-white px-3 py-1 rounded-full text-[10px] font-bold">POPULAR</div>
+              </button>
+
+              <button 
+                onClick={() => handleFinalUpload(false)}
+                className="w-full p-6 border-2 border-gray-100 bg-gray-50 rounded-3xl flex items-center justify-between hover:scale-[1.02] transition-transform text-left"
+              >
+                <div>
+                  <span className="block font-black text-gray-700 text-lg">Free Post</span>
+                  <p className="text-xs text-gray-500 font-medium">Standard listing in regular search results</p>
+                </div>
+              </button>
+            </div>
+
+            <button 
+              onClick={() => setShowTypeSelection(false)}
+              className="w-full mt-6 text-gray-400 text-sm font-bold hover:text-gray-600 transition-colors"
+            >
+              Cancel and Edit Details
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* SUCCESS REVIEW MODAL */}
       {showSuccessModal && (
