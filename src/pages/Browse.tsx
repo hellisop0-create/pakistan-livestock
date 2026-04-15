@@ -1,84 +1,112 @@
 import React, { useState, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { collection, query, where, orderBy, onSnapshot } from 'firebase/firestore';
+import { collection, query, where, onSnapshot } from 'firebase/firestore';
 import { db } from '../firebase';
-import { Ad, Category } from '../types';
+import { Ad } from '../types';
 import AdCard from '../components/AdCard';
 import { useLanguage } from '../contexts/LanguageContext';
-import { Search, SlidersHorizontal, MapPin, Package, Filter } from 'lucide-react';
-import { cn } from '../lib/utils';
+import { Search, MapPin, Filter, Package } from 'lucide-react';
 
-const categories: Category[] = ['Cow', 'Buffalo', 'Goat', 'Sheep', 'Camel', 'Others'];
-const cities = ['All Pakistan', 'Lahore', 'Karachi', 'Islamabad', 'Faisalabad', 'Multan', 'Peshawar', 'Quetta'];
+// ✅ 100% FREE Geographical Lookup (OpenStreetMap)
+async function getProvinceFromOSM(cityName) {
+  if (!cityName || cityName === "all pakistan") return null;
+  try {
+    const res = await fetch(
+      `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(cityName)}, Pakistan&format=json&addressdetails=1&limit=1`,
+      {
+        headers: { "User-Agent": "livestock-mandi-app-free-v1" }
+      }
+    );
+    const data = await res.json();
+    if (data && data.length > 0) {
+      const addr = data[0].address;
+      // In Pakistan, OSM usually returns province in 'state' or 'region'
+      return (addr.state || addr.region || addr.province || "").toLowerCase();
+    }
+  } catch (err) {
+    console.error("OSM Lookup Error:", err);
+  }
+  return null;
+}
 
-export default function Browse() {
-  const [searchParams, setSearchParams] = useSearchParams();
+export default function SearchPage() {
+  const [searchParams] = useSearchParams();
   const [exactAds, setExactAds] = useState<Ad[]>([]);
   const [otherAds, setOtherAds] = useState<Ad[]>([]);
   const [loading, setLoading] = useState(true);
-  const [showFilters, setShowFilters] = useState(false);
   const { t } = useLanguage();
 
-  const categoryFilter = searchParams.get('category') as Category | null;
-  const cityFilter = searchParams.get('city') || 'All Pakistan';
-  const sortFilter = searchParams.get('sort') || 'latest';
+  const queryTerm = (searchParams.get('q') || "").toLowerCase().trim();
+  const province = (searchParams.get('province') || "").toLowerCase().trim();
+  const city = (searchParams.get('city') || "").toLowerCase().trim();
+  const area = (searchParams.get('area') || "").toLowerCase().trim();
+  
+  const locationTerm = [area, city, province].filter(Boolean).join(', ') || "All Pakistan";
 
   useEffect(() => {
     setLoading(true);
-    // Base query: only filter by status and category in Firestore
-    let q = query(collection(db, 'ads'), where('status', '==', 'active'));
 
-    if (categoryFilter) {
-      q = query(q, where('category', '==', categoryFilter));
-    }
-
-    const unsubscribe = onSnapshot(q, (snapshot) => {
-      const allFetchedAds = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Ad));
+    const q = query(collection(db, 'ads'), where('status', '==', 'active'));
+    
+    const unsubscribe = onSnapshot(q, async (snapshot) => {
+      const allAds = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Ad));
       
-      const localExact: Ad[] = [];
-      const localOthers: Ad[] = [];
+      const matchedList: Ad[] = [];
+      const fallbackList: Ad[] = [];
 
-      allFetchedAds.forEach(ad => {
-        // Strict location matching
-        const isCityMatch = cityFilter === 'All Pakistan' || ad.city === cityFilter;
-        
-        if (isCityMatch) {
-          localExact.push(ad);
+      // Process geographical hierarchy for each ad
+      const processedAds = await Promise.all(allAds.map(async (ad) => {
+        const adTitle = (ad.title || "").toLowerCase();
+        const adCity = (ad.city || "").toLowerCase();
+        const adProvince = (ad.province || "").toLowerCase();
+
+        // 1. Check Search Query
+        const matchesSearch = adTitle.includes(queryTerm) || queryTerm === "";
+
+        // 2. Check Location Hierarchy
+        let matchesLocation = false;
+
+        if (locationTerm === "All Pakistan") {
+          matchesLocation = true;
         } else {
-          localOthers.push(ad);
+          // Direct Check: Ad city/province matches the filter text exactly
+          if (adProvince === province || adCity === city || adCity === province) {
+            matchesLocation = true;
+          } 
+          // Smart Check: Is the Ad's city (Jamshoro) inside the filtered province (Sindh)?
+          else if (province !== "" && adCity !== "") {
+            const parentProvince = await getProvinceFromOSM(adCity);
+            if (parentProvince && parentProvince.includes(province)) {
+              matchesLocation = true;
+            }
+          }
+        }
+
+        return { ad, matchesSearch, matchesLocation };
+      }));
+
+      processedAds.forEach(({ ad, matchesSearch, matchesLocation }) => {
+        if (matchesSearch) {
+          if (matchesLocation) {
+            matchedList.push(ad);
+          } else {
+            fallbackList.push(ad);
+          }
         }
       });
 
-      // Sorting Logic
-      const sortFunction = (a: Ad, b: Ad) => {
-        if (a.isFeatured && !b.isFeatured) return -1;
-        if (!a.isFeatured && b.isFeatured) return 1;
-        if (sortFilter === 'price_asc') return a.price - b.price;
-        if (sortFilter === 'price_desc') return b.price - a.price;
-        return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
-      };
-
-      setExactAds(localExact.sort(sortFunction));
-      setOtherAds(localOthers.sort(sortFunction));
+      const sortByFeatured = (a: Ad, b: Ad) => (b.isFeatured ? 1 : 0) - (a.isFeatured ? 1 : 0);
+      
+      setExactAds(matchedList.sort(sortByFeatured));
+      setOtherAds(fallbackList.sort(sortByFeatured));
       setLoading(false);
     });
 
     return () => unsubscribe();
-  }, [categoryFilter, cityFilter, sortFilter]);
-
-  const updateFilter = (key: string, value: string | null) => {
-    const newParams = new URLSearchParams(searchParams);
-    if (value) {
-      newParams.set(key, value);
-    } else {
-      newParams.delete(key);
-    }
-    setSearchParams(newParams);
-  };
+  }, [queryTerm, province, city, area]);
 
   return (
     <div className="min-h-screen bg-gray-50/50">
-      {/* Header Info */}
       <div className="bg-white border-b sticky top-0 z-20">
         <div className="max-w-7xl mx-auto px-4 py-4 flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div className="flex items-center gap-3">
@@ -87,11 +115,11 @@ export default function Browse() {
             </div>
             <div>
               <h1 className="text-xl font-bold text-gray-900 leading-tight">
-                {categoryFilter ? t(categoryFilter.toLowerCase()) : t('latest')}
+                {queryTerm ? `Results for "${queryTerm}"` : "Livestock Marketplace"}
               </h1>
-              <div className="flex items-center text-sm text-gray-500 mt-0.5">
-                <MapPin className="w-3.5 h-3.5 mr-1 text-gray-400" />
-                {cityFilter}
+              <div className="flex items-center text-sm text-gray-500 mt-0.5 font-medium">
+                <MapPin className="w-3.5 h-3.5 mr-1 text-green-600" />
+                <span className="capitalize">{locationTerm}</span>
               </div>
             </div>
           </div>
@@ -103,111 +131,53 @@ export default function Browse() {
       </div>
 
       <div className="max-w-7xl mx-auto px-4 py-8">
-        <div className="flex flex-col lg:flex-row gap-8">
-          {/* Filters Sidebar */}
-          <aside className={cn("w-full lg:w-64 space-y-8", showFilters ? "block" : "hidden lg:block")}>
-            <div>
-              <h3 className="font-bold text-gray-900 mb-4 flex items-center justify-between">
-                {t('categories')}
-                {categoryFilter && (
-                  <button onClick={() => updateFilter('category', null)} className="text-xs text-red-500 font-normal underline">Clear</button>
-                )}
-              </h3>
-              <div className="space-y-2">
-                {categories.map(cat => (
-                  <button
-                    key={cat}
-                    onClick={() => updateFilter('category', cat)}
-                    className={cn(
-                      "w-full text-left px-3 py-2 rounded-lg transition-colors text-sm",
-                      categoryFilter === cat ? "bg-green-700 text-white font-bold" : "bg-white text-gray-600 hover:bg-gray-100 border border-transparent"
-                    )}
-                  >
-                    {t(cat.toLowerCase())}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            <div>
-              <h3 className="font-bold text-gray-900 mb-4 flex items-center text-sm uppercase tracking-wider">
-                <MapPin className="w-4 h-4 mr-2" /> {t('location')}
-              </h3>
-              <select
-                value={cityFilter}
-                onChange={(e) => updateFilter('city', e.target.value)}
-                className="w-full p-2 bg-white border border-gray-200 rounded-lg focus:ring-2 focus:ring-green-500 outline-none"
-              >
-                {cities.map(city => (
-                  <option key={city} value={city}>{city}</option>
-                ))}
-              </select>
-            </div>
-
-            <div>
-              <h3 className="font-bold text-gray-900 mb-4 text-sm uppercase tracking-wider">Sort By</h3>
-              <select
-                value={sortFilter}
-                onChange={(e) => updateFilter('sort', e.target.value)}
-                className="w-full p-2 bg-white border border-gray-200 rounded-lg outline-none"
-              >
-                <option value="latest">Latest</option>
-                <option value="price_asc">Price: Low to High</option>
-                <option value="price_desc">Price: High to Low</option>
-              </select>
-            </div>
-          </aside>
-
-          {/* Listings Main Section */}
-          <main className="flex-1">
-            {loading ? (
-              <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-6">
-                {[1, 2, 3].map(i => <div key={i} className="h-80 bg-white animate-pulse rounded-2xl border border-gray-100" />)}
+        {loading ? (
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-6">
+            {[1, 2, 3, 4].map(i => (
+              <div key={i} className="h-[320px] bg-white border border-gray-100 animate-pulse rounded-2xl shadow-sm" />
+            ))}
+          </div>
+        ) : (
+          <div className="space-y-16">
+            {/* Exact matches based on province/city hierarchy */}
+            {exactAds.length > 0 ? (
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-6">
+                {exactAds.map(ad => <AdCard key={ad.id} ad={ad} />)}
               </div>
             ) : (
-              <div className="space-y-12">
-                {/* 1. PRIMARY RESULTS (Selected Location) */}
-                {exactAds.length > 0 ? (
-                  <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-6">
-                    {exactAds.map(ad => <AdCard key={ad.id} ad={ad} />)}
-                  </div>
-                ) : (
-                  cityFilter !== 'All Pakistan' && (
-                    <div className="bg-white border-2 border-dashed border-gray-200 rounded-3xl p-12 text-center max-w-2xl mx-auto">
-                      <MapPin className="w-12 h-12 text-gray-300 mx-auto mb-4" />
-                      <h3 className="text-xl font-bold text-gray-900">No ads in {cityFilter}</h3>
-                      <p className="text-gray-500 mt-2">We couldn't find any listings for this location, but check out other options below.</p>
-                    </div>
-                  )
-                )}
+              locationTerm !== "All Pakistan" && (
+                <div className="text-center py-16 bg-white rounded-3xl border-2 border-dashed border-gray-200 max-w-2xl mx-auto">
+                  <MapPin className="w-12 h-12 text-gray-300 mx-auto mb-4" />
+                  <h3 className="text-xl font-bold text-gray-900">No ads found in {locationTerm}</h3>
+                  <p className="text-gray-500 mt-2">Check out results from all over Pakistan below.</p>
+                </div>
+              )
+            )}
 
-                {/* 2. GAP AND SECONDARY RESULTS (Across Pakistan) */}
-                {otherAds.length > 0 && (
-                  <div className="pt-10 border-t border-gray-200">
-                    <div className="mb-6">
-                      <h2 className="text-2xl font-bold text-gray-900">More from Across Pakistan</h2>
-                      <p className="text-gray-500">Other {categoryFilter || 'livestock'} ads you might like</p>
-                    </div>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-6">
-                      {otherAds.map(ad => <AdCard key={ad.id} ad={ad} />)}
-                    </div>
-                  </div>
-                )}
-
-                {/* 3. ABSOLUTE EMPTY STATE */}
-                {exactAds.length === 0 && otherAds.length === 0 && (
-                  <div className="text-center py-20 bg-white rounded-3xl border border-dashed border-gray-300 shadow-sm max-w-2xl mx-auto">
-                    <Filter className="w-10 h-10 text-gray-300 mx-auto mb-6" />
-                    <h3 className="text-xl font-bold text-gray-900 mb-2">No matching ads found anywhere</h3>
-                    <button onClick={() => setSearchParams({})} className="text-green-700 font-bold hover:underline">
-                      Clear all filters
-                    </button>
-                  </div>
-                )}
+            {/* Fallback results */}
+            {otherAds.length > 0 && (
+              <div className="pt-10 border-t border-gray-200">
+                <div className="mb-8">
+                  <h2 className="text-2xl font-bold text-gray-900">Featured from All Pakistan</h2>
+                  <p className="text-gray-500">Other relevant ads from different locations</p>
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-6">
+                  {otherAds.map(ad => <AdCard key={ad.id} ad={ad} />)}
+                </div>
               </div>
             )}
-          </main>
-        </div>
+
+            {exactAds.length === 0 && otherAds.length === 0 && (
+              <div className="text-center py-24 bg-white rounded-3xl border border-dashed border-gray-300 max-w-2xl mx-auto">
+                <Filter className="w-10 h-10 text-gray-300 mx-auto mb-6" />
+                <h3 className="text-xl font-bold text-gray-900">No matching ads found</h3>
+                <button onClick={() => window.location.href = '/search'} className="mt-4 text-green-700 font-bold hover:underline">
+                  Clear all filters
+                </button>
+              </div>
+            )}
+          </div>
+        )}
       </div>
     </div>
   );

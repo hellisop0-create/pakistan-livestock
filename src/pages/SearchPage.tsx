@@ -61,18 +61,23 @@ export default function SearchPage() {
   const { t } = useLanguage();
 
   const queryTerm = searchParams.get('q') || "";
-  const locationTerm = searchParams.get('location') || "All Pakistan";
+  
+  // ✅ Location Logic: Capture province, city, area from your URL
+  const province = searchParams.get('province') || "";
+  const city = searchParams.get('city') || "";
+  const area = searchParams.get('area') || "";
+  
+  const locationTerm = [area, city, province].filter(Boolean).join(', ') || "All Pakistan";
 
   useEffect(() => {
     setLoading(true);
 
-    // Fetch all active ads (we filter by location in JS to allow fallback logic)
     const q = query(collection(db, 'ads'), where('status', '==', 'active'));
     
     const unsubscribe = onSnapshot(q, async (snapshot) => {
       const allAds = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Ad));
       
-      const isSpecificLocation = locationTerm && locationTerm !== "All Pakistan";
+      const isSpecificLocation = locationTerm !== "All Pakistan";
       let osmLocations = [];
 
       if (isSpecificLocation) {
@@ -105,6 +110,9 @@ export default function SearchPage() {
       setExactAds(matches.sort(sortByFeatured));
       setOtherAds(fallbacks.sort(sortByFeatured));
       setLoading(false);
+    }, (error) => {
+      console.error("Snapshot error:", error);
+      setLoading(false);
     });
 
     return () => unsubscribe();
@@ -112,7 +120,6 @@ export default function SearchPage() {
 
   return (
     <div className="min-h-screen bg-gray-50/50">
-      {/* Search Header Info */}
       <div className="bg-white border-b sticky top-0 z-20">
         <div className="max-w-7xl mx-auto px-4 py-4 flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div className="flex items-center gap-3">
@@ -145,13 +152,11 @@ export default function SearchPage() {
           </div>
         ) : (
           <div className="space-y-16">
-            {/* 1. SECTION: Exact Location Results */}
             {exactAds.length > 0 ? (
               <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-6">
                 {exactAds.map(ad => <AdCard key={ad.id} ad={ad} />)}
               </div>
             ) : (
-              // 2. SECTION: If no matches for selected location
               locationTerm !== "All Pakistan" && (
                 <div className="text-center py-16 bg-white rounded-3xl border-2 border-dashed border-gray-200 max-w-2xl mx-auto shadow-sm">
                   <MapPin className="w-12 h-12 text-gray-300 mx-auto mb-4" />
@@ -164,7 +169,6 @@ export default function SearchPage() {
               )
             )}
 
-            {/* 3. SECTION: Fallback Results with a gap */}
             {otherAds.length > 0 && (
               <div className="pt-10 border-t border-gray-200">
                 <div className="mb-8">
@@ -177,7 +181,6 @@ export default function SearchPage() {
               </div>
             )}
 
-            {/* 4. SECTION: Complete zero results fallback */}
             {exactAds.length === 0 && otherAds.length === 0 && (
               <div className="text-center py-24 bg-white rounded-3xl border border-dashed border-gray-300 max-w-2xl mx-auto">
                 <Filter className="w-10 h-10 text-gray-300 mx-auto mb-6" />
