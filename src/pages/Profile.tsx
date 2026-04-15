@@ -45,10 +45,12 @@ export default function Profile() {
   const [loading, setLoading] = useState(true);
   const [loadingFavs, setLoadingFavs] = useState(false);
 
-  // Filter for Featured Ads: ensures paid ads show up immediately regardless of admin approval
+  // STRENGTHENED FILTER: Shows ads if they are marked as featured OR have ANY status set by the billing/admin process
   const featuredAds = myAds.filter(ad => 
     ad.isFeatured === true || 
-    (ad.featuredStatus && ['pending', 'active', 'declined'].includes(ad.featuredStatus))
+    ad.featuredStatus === 'pending' || 
+    ad.featuredStatus === 'active' || 
+    ad.featuredStatus === 'declined'
   );
 
   // Fetch User's Own Listings
@@ -318,7 +320,7 @@ export default function Profile() {
                             <div className="flex flex-wrap items-center gap-2 mb-1">
                               <h4 className="font-bold text-gray-900 truncate text-lg pr-2">{ad.title}</h4>
                               
-                              {/* ACTIVITY STATUS DISPLAY */}
+                              {/* DYNAMIC STATUS BADGES */}
                               {ad.featuredStatus === 'pending' && (
                                 <span className="bg-amber-50 text-amber-600 text-[10px] px-2 py-1 rounded-lg flex items-center font-bold uppercase tracking-wider border border-amber-100">
                                   <Clock className="w-3 h-3 mr-1" /> Pending
