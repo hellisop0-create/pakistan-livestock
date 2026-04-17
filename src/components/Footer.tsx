@@ -75,7 +75,7 @@ export default function Footer() {
               </li>
               <li className="flex items-center space-x-3">
                 <Mail className="w-5 h-5 flex-shrink-0" />
-                <span>support@chopan.com</span>
+                <span>chopan.com.pk@gmail.com</span>
               </li>
             </ul>
           </div>
