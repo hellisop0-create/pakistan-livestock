@@ -32,7 +32,8 @@ export default function Home() {
 
   // Fetch data from Firestore
   useEffect(() => {
-    const promoQuery = query(collection(db, 'active_ads'), where('isActive', '==', true), orderBy('createdAt', 'desc'), limit(1));
+    // Replace your promoQuery with this simple one
+const promoQuery = query(collection(db, 'active_ads'), limit(1));
     const unsubscribePromo = onSnapshot(promoQuery, (snapshot) => {
       if (!snapshot.empty) setPromoAd({ id: snapshot.docs[0].id, ...snapshot.docs[0].data() });
     });

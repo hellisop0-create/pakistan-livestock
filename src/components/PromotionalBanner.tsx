@@ -8,11 +8,9 @@ export default function PromotionalBanner() {
   useEffect(() => {
     // Get the latest active ad
     const q = query(
-      collection(db, 'active_ads'),
-      where('isActive', '==', true),
-      orderBy('createdAt', 'desc'),
-      limit(1)
-    );
+  collection(db, 'active_ads'),
+  limit(1)
+);
 
     const unsubscribe = onSnapshot(q, (snapshot) => {
       if (!snapshot.empty) {
