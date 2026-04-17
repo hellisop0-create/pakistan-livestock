@@ -30,7 +30,7 @@ function normalize(str: any) {
   return str ? str.toString().toLowerCase().trim() : "";
 }
 
-// ✅ Enhanced Helper: Finds province even if the ad only has a City or Area name
+// ✅ This version checks both Cities AND Areas to find the Province
 const getAdProvince = (ad: any) => {
   if (ad.province) return normalize(ad.province);
   
@@ -38,10 +38,16 @@ const getAdProvince = (ad: any) => {
   const area = normalize(ad.area);
 
   for (const [provinceName, cities] of Object.entries(LOCATION_DATA)) {
-    // Check if ad city matches a city in this province
-    if (Object.keys(cities).some(c => normalize(c) === city)) return normalize(provinceName);
-    // Check if ad area matches an area in any city of this province
-    if (Object.values(cities).flat().some(a => normalize(a) === area)) return normalize(provinceName);
+    const provinceNorm = normalize(provinceName);
+    
+    // 1. Check if the ad's city is listed as a City in this province
+    if (Object.keys(cities).some(c => normalize(c) === city)) return provinceNorm;
+    
+    // 2. Check if the ad's city is listed as an Area in this province
+    if (Object.values(cities).flat().some(a => normalize(a) === city)) return provinceNorm;
+
+    // 3. Check if the ad's area is listed as an Area in this province
+    if (Object.values(cities).flat().some(a => normalize(a) === area)) return provinceNorm;
   }
   return "";
 };
