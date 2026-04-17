@@ -87,7 +87,7 @@ export default function Navbar() {
                 className="h-10 w-auto object-contain sm:h-12"
               />
               <span className={cn(
-                "text-2xl font-black tracking-tighter bg-gradient-to-r from-green-700 to-green-900 bg-clip-text text-transparent hidden sm:block",
+               "text-2xl font-black font-brand bg-gradient-to-r from-green-700 to-green-900 bg-clip-text text-transparent hidden sm:block",
                 language === 'ur' && "font-urdu text-green-900"
               )}>
                 {t('appName')}
