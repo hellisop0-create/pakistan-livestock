@@ -1,7 +1,7 @@
 {
   "name": "Chopan",
   "short_name": "Chopan",
-  "description": "Pakistan's most trusted digital livestock marketplace. Buy and sell cows, buffaloes, goats, and sheep directly from your phone.",
+  "description": "Pakistan's most trusted digital livestock marketplace. Buy and sell cattle, buffaloes, goats, and sheep directly from your phone.",
   "id": "com.chopan.app",
   "start_url": "/",
   "display": "standalone",

@@ -8,7 +8,7 @@ import AdBanner from '../components/AdBanner'; // Added Import
 const categories = [
   {
     id: 'Cattle',
-    image: 'https://i.postimg.cc/KzSQT3Nn/cow.jpg',
+    image: 'https://i.postimg.cc/KzSQT3Nn/cattle.jpg',
     color: 'bg-green-100'
   },
   {

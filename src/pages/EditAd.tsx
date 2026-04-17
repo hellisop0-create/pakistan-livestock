@@ -14,7 +14,7 @@ import {
   Save
 } from 'lucide-react';
 
-const CATEGORIES: Category[] = ['Cow', 'Buffalo', 'Goat', 'Sheep', 'Camel', 'Others'];
+const CATEGORIES: Category[] = ['Cattle', 'Buffalo', 'Goat', 'Sheep', 'Camel', 'Others'];
 
 export default function EditAd() {
   const { id } = useParams();
@@ -31,7 +31,7 @@ export default function EditAd() {
     title: '',
     description: '',
     price: '',
-    category: 'Cow' as Category,
+    category: 'Cattle' as Category,
     breed: '',
     age: '',
     weight: '',
@@ -64,7 +64,7 @@ export default function EditAd() {
             title: data.title || '',
             description: data.description || '',
             price: data.price.toString() || '',
-            category: data.category || 'Cow',
+            category: data.category || 'Cattle',
             breed: data.breed || '',
             age: data.age || '',
             weight: data.weight || '',
@@ -188,7 +188,7 @@ export default function EditAd() {
                   className="w-full rounded-2xl border bg-gray-50 p-4 outline-none focus:ring-2 focus:ring-green-500"
                   value={formData.title}
                   onChange={(e) => setFormData({...formData, title: e.target.value})}
-                  placeholder="e.g. Beautiful Sahiwal Cow for Sale"
+                  placeholder="e.g. Beautiful Sahiwal Cattle for Sale"
                 />
               </div>
 

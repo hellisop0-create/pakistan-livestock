@@ -1,4 +1,4 @@
-export type Category = 'Cow' | 'Buffalo' | 'Goat' | 'Sheep' | 'Camel' | 'Others';
+export type Category = 'Cattle' | 'Buffalo' | 'Goat' | 'Sheep' | 'Camel' | 'Others';
 
 export interface User {
   uid: string;
@@ -34,6 +34,7 @@ export interface Ad {
   isFeatured: boolean;
   isUrgent: boolean;
   viewCount: number;
+  featuredStatus?: 'pending' | 'active' | 'rejected' | 'none';
   createdAt: string;
   expiresAt: string;
 }

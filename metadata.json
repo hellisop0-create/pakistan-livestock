@@ -1,5 +1,5 @@
 {
   "name": "Chopan",
-  "description": "Pakistan's premium livestock marketplace for buying and selling cows, buffaloes, goats, and more.",
+  "description": "Pakistan's premium livestock marketplace for buying and selling cattle, buffaloes, goats, and more.",
   "requestFramePermissions": ["camera", "microphone", "geolocation"]
 }

@@ -26,7 +26,7 @@
         "title": { "type": "string", "description": "The title of the advertisement." },
         "description": { "type": "string", "description": "The detailed description of the animal." },
         "price": { "type": "number", "description": "The asking price for the animal." },
-        "category": { "type": "string", "enum": ["Cow", "Buffalo", "Goat", "Sheep", "Camel", "Others"], "description": "The category of the animal." },
+        "category": { "type": "string", "enum": ["Cattle", "Buffalo", "Goat", "Sheep", "Camel", "Others"], "description": "The category of the animal." },
         "breed": { "type": "string", "description": "The breed of the animal." },
         "age": { "type": "string", "description": "The age of the animal." },
         "weight": { "type": "string", "description": "The weight of the animal." },

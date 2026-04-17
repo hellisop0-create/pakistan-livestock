@@ -52,7 +52,7 @@ export default function Hero() {
               <Search className="text-gray-400 w-5 h-5 mr-3" />
               <input 
                 type="text" 
-                placeholder="Search for Cow, Goat, Camel..." 
+                placeholder="Search for Cattle, Goat, Camel..." 
                 className="w-full py-5 bg-transparent outline-none text-gray-700 font-bold"
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}

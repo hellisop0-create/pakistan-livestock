@@ -8,7 +8,7 @@ import { useLanguage } from '../contexts/LanguageContext';
 import { Search, SlidersHorizontal, MapPin, Package, Filter } from 'lucide-react';
 import { cn } from '../lib/utils';
 
-const categories: Category[] = ['Cow', 'Buffalo', 'Goat', 'Sheep', 'Camel', 'Others'];
+const categories: Category[] = ['Cattle', 'Buffalo', 'Goat', 'Sheep', 'Camel', 'Others'];
 const cities = ['All Pakistan', 'Lahore', 'Karachi', 'Islamabad', 'Faisalabad', 'Multan', 'Peshawar', 'Quetta'];
 
 export default function Browse() {

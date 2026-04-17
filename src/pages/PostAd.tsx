@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'; // Added useEffect
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { collection, addDoc, query, where, getDocs } from 'firebase/firestore';
 import { db } from '../firebase';
@@ -10,9 +10,9 @@ import * as z from 'zod';
 import { Camera, MapPin, Phone, AlertCircle, Loader2, X, Image as ImageIcon, Clock, EyeOff, ChevronDown } from 'lucide-react';
 import { toast } from 'sonner';
 import { handleFirestoreError, OperationType } from '../lib/firestore-utils';
-import { LOCATION_DATA } from '../components/locations'; // Import your location JSON
+import { LOCATION_DATA } from '../components/locations'; 
 
-// 1. Updated Schema with province
+// 1. Updated Schema with Province
 const adSchema = z.object({
   title: z.string().min(5, 'Title must be at least 5 characters').max(100),
   description: z.string().min(20, 'Description must be at least 20 characters'),
@@ -22,7 +22,7 @@ const adSchema = z.object({
   age: z.string().min(1, 'Age is required'),
   weight: z.string().min(1, 'Weight is required'),
   healthCondition: z.string().min(2, 'Health condition is required'),
-  province: z.string().min(1, 'Province is required'), // Added
+  province: z.string().min(1, 'Province is required'),
   city: z.string().min(1, 'City is required'),
   area: z.string().min(2, 'Area is required'),
   phoneNumber: z.string().regex(/^(\+92|0)3[0-9]{9}$/, 'Invalid Pakistani phone number'),
@@ -50,11 +50,10 @@ export default function PostAd() {
     }
   });
 
-  // 2. Watch location values to update dropdowns dynamically
+  // Location logic variables
   const watchProvince = watch('province');
   const watchCity = watch('city');
 
-  // Filter Logic
   const provinces = [...new Set(LOCATION_DATA.map(item => item.province))].sort();
   const cities = LOCATION_DATA
     .filter(item => item.province === watchProvince)
@@ -73,7 +72,21 @@ export default function PostAd() {
     setValue('area', '');
   }, [watchCity, setValue]);
 
-  // ... (handleImageAdd, removeImage, and onSubmit remain exactly as you had them)
+  if (!user) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50 px-4">
+        <div className="max-w-md w-full bg-white p-8 rounded-2xl shadow-sm border border-gray-200 text-center">
+          <AlertCircle className="w-16 h-16 text-orange-500 mx-auto mb-6" />
+          <h2 className="text-2xl font-bold mb-4">Login Required</h2>
+          <p className="text-gray-600 mb-8">You must be logged in to post an advertisement.</p>
+          <button onClick={() => navigate('/')} className="bg-green-700 text-white px-8 py-3 rounded-full font-bold">
+            Go to Homepage
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   const handleImageAdd = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
     if (files && files.length > 0) {
@@ -106,7 +119,7 @@ export default function PostAd() {
       
       const q = query(
         collection(db, 'ads'),
-        where('sellerUid', '==', user?.uid),
+        where('sellerUid', '==', user.uid),
         where('createdAt', '>=', thirtyDaysAgo.toISOString())
       );
       
@@ -129,18 +142,27 @@ export default function PostAd() {
         );
 
         if (!response.ok) throw new Error("Cloudinary upload failed");
+
         const resData = await response.json();
-        if (resData.secure_url) uploadedUrls.push(resData.secure_url);
+        if (resData.secure_url) {
+          uploadedUrls.push(resData.secure_url);
+        }
       }
 
-      await addDoc(collection(db, 'ads'), {
-        ...data,
-        images: uploadedUrls,
-        sellerUid: user?.uid,
-        sellerName: user?.displayName || 'Seller',
-        status: 'pending',
-        createdAt: new Date().toISOString(),
-      });
+      if (uploadedUrls.length === 0) throw new Error("No images were uploaded.");
+
+      try {
+        await addDoc(collection(db, 'ads'), {
+          ...data,
+          images: uploadedUrls,
+          sellerUid: user?.uid,
+          sellerName: user?.displayName || 'Seller',
+          status: 'pending',
+          createdAt: new Date().toISOString(),
+        });
+      } catch (error) {
+        handleFirestoreError(error, OperationType.WRITE, 'ads');
+      }
 
       setShowSuccessModal(true); 
     } catch (error: any) {
@@ -150,21 +172,6 @@ export default function PostAd() {
       setLoading(false);
     }
   };
-
-  if (!user) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50 px-4">
-        <div className="max-w-md w-full bg-white p-8 rounded-2xl shadow-sm border border-gray-200 text-center">
-          <AlertCircle className="w-16 h-16 text-orange-500 mx-auto mb-6" />
-          <h2 className="text-2xl font-bold mb-4">Login Required</h2>
-          <p className="text-gray-600 mb-8">You must be logged in to post an advertisement.</p>
-          <button onClick={() => navigate('/')} className="bg-green-700 text-white px-8 py-3 rounded-full font-bold">
-            Go to Homepage
-          </button>
-        </div>
-      </div>
-    );
-  }
 
   return (
     <div className="min-h-screen bg-gray-50 py-12 pb-24 font-sans">
@@ -176,8 +183,7 @@ export default function PostAd() {
           </div>
 
           <form onSubmit={handleSubmit(onSubmit)} className="p-6 sm:p-8 space-y-8">
-            
-            {/* ... Photo Section (Keep your existing code here) ... */}
+            {/* PHOTO SECTION */}
             <div className="space-y-4">
               <h3 className="text-lg font-bold text-gray-900 flex items-center">
                 <Camera className="w-5 h-5 mr-2 text-green-600" />
@@ -213,19 +219,79 @@ export default function PostAd() {
               </div>
             </div>
 
-            {/* ... Ad Details (Keep your existing Title, Category, Price, Desc) ... */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-               <div className="md:col-span-2">
-                 <label className="block text-sm font-bold text-gray-700 mb-2">Ad Title</label>
-                 <input {...register('title')} placeholder="e.g. Sahiwal Cow for Sale" className="w-full p-4 bg-gray-50 border border-gray-200 rounded-2xl outline-none" />
-                 {errors.title && <p className="text-red-500 text-xs mt-1">{errors.title.message}</p>}
-               </div>
-               {/* ... other standard fields ... */}
-            </div>
+            {/* PHOTO POPUP */}
+            {showPhotoPopup && (
+              <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+                <div className="bg-white w-full max-w-sm rounded-t-[2.5rem] sm:rounded-3xl p-8 shadow-2xl">
+                  <div className="flex justify-between items-center mb-8">
+                    <h3 className="text-2xl font-black text-gray-900">Upload Photo</h3>
+                    <button type="button" onClick={() => setShowPhotoPopup(false)} className="p-2 bg-gray-100 rounded-full">
+                      <X className="w-5 h-5 text-gray-500"/>
+                    </button>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-6">
+                    <label className="flex flex-col items-center justify-center p-6 bg-green-50 rounded-2xl border-2 border-green-100 cursor-pointer active:scale-95 transition-all">
+                      <div className="w-14 h-14 bg-green-600 rounded-full flex items-center justify-center mb-3 shadow-lg">
+                        <Camera className="w-7 h-7 text-white" />
+                      </div>
+                      <span className="font-bold text-green-900 text-center text-sm">Take Picture</span>
+                      <input type="file" accept="image/*" capture="environment" className="hidden" onChange={handleImageAdd} />
+                    </label>
+
+                    <label className="flex flex-col items-center justify-center p-6 bg-blue-50 rounded-2xl border-2 border-blue-100 cursor-pointer active:scale-95 transition-all">
+                      <div className="w-14 h-14 bg-blue-600 rounded-full flex items-center justify-center mb-3 shadow-lg">
+                        <ImageIcon className="w-7 h-7 text-white" />
+                      </div>
+                      <span className="font-bold text-blue-900 text-sm">Gallery</span>
+                      <input type="file" accept="image/*" multiple className="hidden" onChange={handleImageAdd} />
+                    </label>
+                  </div>
+                </div>
+              </div>
+            )}
 
             <hr className="border-gray-100" />
 
-            {/* NEW LOCATION SECTION */}
+            {/* AD DETAILS GRID */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="md:col-span-2">
+                <label className="block text-sm font-bold text-gray-700 mb-2">Ad Title</label>
+                <input {...register('title')} placeholder="e.g. Sahiwal Cow for Sale" className="w-full p-4 bg-gray-50 border border-gray-200 rounded-2xl outline-none" />
+                {errors.title && <p className="text-red-500 text-xs mt-1">{errors.title.message}</p>}
+              </div>
+
+              <div>
+                <label className="block text-sm font-bold text-gray-700 mb-2">Category</label>
+                <select {...register('category')} className="w-full p-4 bg-gray-50 border border-gray-200 rounded-2xl outline-none">
+                  {['Cow', 'Buffalo', 'Goat', 'Sheep', 'Camel', 'Others'].map(cat => (
+                    <option key={cat} value={cat}>{cat}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-sm font-bold text-gray-700 mb-2">Price (PKR)</label>
+                <input type="number" {...register('price', { valueAsNumber: true })} className="w-full p-4 bg-gray-50 border border-gray-200 rounded-2xl outline-none" />
+                {errors.price && <p className="text-red-500 text-xs mt-1">{errors.price.message}</p>}
+              </div>
+
+              <div className="md:col-span-2">
+                <label className="block text-sm font-bold text-gray-700 mb-2">Description</label>
+                <textarea {...register('description')} rows={4} className="w-full p-4 bg-gray-50 border border-gray-200 rounded-2xl outline-none"></textarea>
+                {errors.description && <p className="text-red-500 text-xs mt-1">{errors.description.message}</p>}
+              </div>
+            </div>
+
+            {/* ANIMAL SPECIFICS */}
+            <div className="grid grid-cols-2 gap-6">
+              <input {...register('breed')} placeholder="Breed" className="w-full p-4 bg-gray-50 border border-gray-200 rounded-2xl outline-none" />
+              <input {...register('age')} placeholder="Age" className="w-full p-4 bg-gray-50 border border-gray-200 rounded-2xl outline-none" />
+              <input {...register('weight')} placeholder="Weight" className="w-full p-4 bg-gray-50 border border-gray-200 rounded-2xl outline-none" />
+              <input {...register('healthCondition')} placeholder="Health" className="w-full p-4 bg-gray-50 border border-gray-200 rounded-2xl outline-none" />
+            </div>
+
+            {/* LOCATION HIERARCHY SECTION */}
             <div className="space-y-6">
               <h3 className="text-lg font-bold text-gray-900 flex items-center">
                 <MapPin className="w-5 h-5 mr-2 text-green-600" />
@@ -233,7 +299,7 @@ export default function PostAd() {
               </h3>
               
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                {/* Province Dropdown */}
+                {/* Province Selection */}
                 <div className="relative">
                   <label className="block text-xs font-black text-gray-400 uppercase mb-2 ml-1">Province</label>
                   <select 
@@ -247,7 +313,7 @@ export default function PostAd() {
                   {errors.province && <p className="text-red-500 text-[10px] mt-1">{errors.province.message}</p>}
                 </div>
 
-                {/* City Dropdown */}
+                {/* City Selection */}
                 <div className="relative">
                   <label className="block text-xs font-black text-gray-400 uppercase mb-2 ml-1">City</label>
                   <select 
@@ -262,14 +328,14 @@ export default function PostAd() {
                   {errors.city && <p className="text-red-500 text-[10px] mt-1">{errors.city.message}</p>}
                 </div>
 
-                {/* Area Input with Datalist */}
+                {/* Area Selection / Custom Type */}
                 <div className="relative">
                   <label className="block text-xs font-black text-gray-400 uppercase mb-2 ml-1">Area / Village</label>
                   <input 
                     {...register('area')}
                     list="post-area-list"
                     disabled={!watchCity}
-                    placeholder="e.g. Latifabad Unit 2"
+                    placeholder="e.g. Latifabad"
                     className="w-full p-4 bg-gray-50 border border-gray-200 rounded-2xl outline-none font-bold text-gray-700 disabled:opacity-50"
                   />
                   <datalist id="post-area-list">
@@ -280,15 +346,37 @@ export default function PostAd() {
               </div>
             </div>
 
-            {/* ... Rest of your form (Phone, Hide Toggle, Submit Button) ... */}
-            <div className="sm:col-span-2 relative">
+            {/* CONTACT SECTION */}
+            <div className="grid grid-cols-1 gap-6">
+              <div className="relative">
                 <Phone className="absolute left-4 top-[58px] -translate-y-1/2 text-gray-400 w-5 h-5" />
                 <label className="block text-xs font-black text-gray-400 uppercase mb-2 ml-1">Contact Number</label>
                 <input {...register('phoneNumber')} placeholder="Phone Number (0300...)" className="w-full pl-12 pr-4 py-4 bg-gray-50 border border-gray-200 rounded-2xl outline-none" />
                 {errors.phoneNumber && <p className="text-red-500 text-xs mt-1">{errors.phoneNumber.message}</p>}
+              </div>
+
+              {/* HIDE PHONE NUMBER TOGGLE */}
+              <div className="flex items-center justify-between p-4 bg-green-50/50 rounded-2xl border border-green-100">
+                <div className="flex items-center space-x-3">
+                  <div className="p-2 bg-green-100 rounded-lg">
+                    <EyeOff className="w-5 h-5 text-green-700" />
+                  </div>
+                  <div className="flex flex-col">
+                    <span className="text-sm font-bold text-gray-700">Hide Phone Number</span>
+                    <span className="text-xs text-gray-500 font-medium italic">Buyers will only see "Hidden by Seller"</span>
+                  </div>
+                </div>
+                <label className="relative inline-flex items-center cursor-pointer">
+                  <input 
+                    type="checkbox" 
+                    {...register('hidePhoneNumber')} 
+                    className="sr-only peer" 
+                  />
+                  <div className="w-11 h-6 bg-gray-300 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-green-600"></div>
+                </label>
+              </div>
             </div>
 
-            {/* ... Hide Phone and Submit ... */}
             <button
               type="submit"
               disabled={loading}
@@ -299,7 +387,22 @@ export default function PostAd() {
           </form>
         </div>
       </div>
-      {/* ... Success Modal ... */}
+
+      {/* SUCCESS REVIEW MODAL */}
+      {showSuccessModal && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-md">
+          <div className="bg-white w-full max-w-md rounded-[2.5rem] p-8 shadow-2xl text-center">
+            <div className="w-20 h-20 bg-orange-100 rounded-full flex items-center justify-center mx-auto mb-6">
+              <Clock className="w-10 h-10 text-orange-600 animate-pulse" />
+            </div>
+            <h3 className="text-2xl font-black text-gray-900 mb-2">Ad Under Review</h3>
+            <p className="text-gray-600 mb-8">Your ad is being reviewed by the admin. Please wait for approval.</p>
+            <button onClick={() => navigate('/profile')} className="w-full bg-green-700 text-white py-4 rounded-2xl font-bold">
+              Go to My Profile
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
