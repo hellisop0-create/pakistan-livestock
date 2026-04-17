@@ -1,35 +1,9 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Search, MapPin, Check, ChevronDown } from 'lucide-react';
-import { motion, AnimatePresence } from 'motion/react';
-
-// ✅ Synchronized with your database naming conventions
-const LOCATION_DATA = {
-  "Sindh": {
-    "Karachi": ["DHA", "Clifton", "Gulshan-e-Iqbal", "Gulistan-e-Johar", "North Nazimabad", "Malir", "Saddar", "Scheme 33"],
-    "Hyderabad": ["Latifabad", "Qasimabad", "Tando Allahyar Road", "Hyder Chowk", "Heerabaad", "Pathan Colony", "Citizen Colony", "Autobahn", "Tandojam", "Jamshoro"],
-    "Sukkur": ["Military Road", "Barrage Road", "Rohri"],
-    "Larkana": ["VIP Road", "Station Road"],
-    "Mirpur Khas": ["Satellite Town", "Digri Road"]
-  },
-  "Punjab": {
-    "Lahore": ["DHA", "Bahria Town", "Gulberg", "Johar Town", "Model Town", "Cantt"],
-    "Faisalabad": ["Madina Town", "People's Colony", "D Ground"],
-    "Rawalpindi": ["Bahria Town", "Saddar", "Chaklala", "Adiala Road"],
-    "Multan": ["Bosan Road", "Gulgasht Colony", "Cantt"],
-    "Gujranwala": ["Model Town", "DC Colony"],
-    "Sialkot": ["Cantt", "Sialkot City"]
-  },
-  "Khyber Pakhtunkhwa": {
-    "Peshawar": ["Hayatabad", "University Town", "Ring Road", "Saddar"],
-    "Abbottabad": ["Jinnahabad", "Mandian"],
-    "Mardan": ["Sheikh Maltoon Town", "Cantt"]
-  },
-  "Balochistan": {
-    "Quetta": ["Jinnah Town", "Satellite Town", "Sariab Road"],
-    "Gwadar": ["New Town", "Port Area"]
-  }
-};
+import { Search, Check, ChevronDown } from 'lucide-react';
+import { motion } from 'motion/react';
+// ✅ Importing your array-based locations file
+import { LOCATION_DATA } from './locations'; 
 
 const SuggestionList = ({ items, onSelect, visible }) => {
   if (!visible || items.length === 0) return null;
@@ -58,23 +32,24 @@ export default function Hero() {
 
   const [province, setProvince] = useState("");
   const [city, setCity] = useState("");
-  const [area, setArea] = useState("");
   const [activeField, setActiveField] = useState(null);
 
-  const isSearchDisabled = !query.trim();
+  // Generate unique list of provinces from your array
+  const provinces = [...new Set(LOCATION_DATA.map(item => item.province))].sort();
 
+  const isSearchDisabled = !query.trim() && !province && !city.trim();
+
+  // Filter cities based on selected province
   const getCitySuggestions = () => {
-    if (!province || !LOCATION_DATA[province]) return [];
-    const cities = Object.keys(LOCATION_DATA[province]);
-    if (!city) return cities;
-    return cities.filter(c => c.toLowerCase().includes(city.toLowerCase()));
-  };
+    if (!province) return [];
+    
+    // Get all cities that belong to the selected province
+    const provinceCities = LOCATION_DATA
+      .filter(item => item.province === province)
+      .map(item => item.city);
 
-  const getAreaSuggestions = () => {
-    if (!province || !city || !LOCATION_DATA[province][city]) return [];
-    const areas = LOCATION_DATA[province][city];
-    if (!area) return areas;
-    return areas.filter(a => a.toLowerCase().includes(area.toLowerCase()));
+    if (!city) return provinceCities;
+    return provinceCities.filter(c => c.toLowerCase().includes(city.toLowerCase()));
   };
 
   const handleSearch = (e) => {
@@ -82,11 +57,9 @@ export default function Hero() {
     if (isSearchDisabled) return;
     
     const params = new URLSearchParams();
-    params.append('q', query.trim());
-    
+    if (query.trim()) params.append('q', query.trim());
     if (province) params.append('province', province);
-    if (city) params.append('city', city);
-    if (area) params.append('area', area);
+    if (city.trim()) params.append('city', city.trim());
     
     navigate(`/search?${params.toString()}`);
   };
@@ -104,6 +77,7 @@ export default function Hero() {
         <form onSubmit={handleSearch} className="max-w-6xl mx-auto bg-white rounded-2xl p-3 flex flex-col gap-3 shadow-2xl relative z-50">
           <div className="flex flex-col lg:flex-row gap-2 w-full">
             
+            {/* Search Input */}
             <div className="flex-[1.5] flex items-center px-4 border border-gray-100 rounded-xl bg-gray-50">
               <Search className="text-gray-400 w-5 h-5 mr-3" />
               <input 
@@ -115,22 +89,23 @@ export default function Hero() {
               />
             </div>
 
-            <div className="flex flex-col md:flex-row gap-2 flex-[3]">
-              
+            <div className="flex flex-col md:flex-row gap-2 flex-[2]">
+              {/* Province Select */}
               <div className="relative flex-1">
                 <select 
                   className="w-full h-full p-4 bg-gray-50 border border-gray-100 rounded-xl outline-none text-gray-600 font-semibold text-sm appearance-none cursor-pointer"
                   value={province}
-                  onChange={(e) => { setProvince(e.target.value); setCity(""); setArea(""); }}
+                  onChange={(e) => { setProvince(e.target.value); setCity(""); }}
                 >
                   <option value="">Select Province</option>
-                  {Object.keys(LOCATION_DATA).map(p => (
+                  {provinces.map(p => (
                     <option key={p} value={p}>{p}</option>
                   ))}
                 </select>
                 <ChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
               </div>
 
+              {/* City Suggestion Input */}
               <div className="relative flex-1">
                 <input 
                   type="text"
@@ -140,30 +115,12 @@ export default function Hero() {
                   value={city}
                   onFocus={() => setActiveField('city')}
                   onBlur={() => setTimeout(() => setActiveField(null), 200)}
-                  onChange={(e) => { setCity(e.target.value); setArea(""); }}
+                  onChange={(e) => setCity(e.target.value)}
                 />
                 <SuggestionList 
                   items={getCitySuggestions()} 
                   visible={activeField === 'city'} 
-                  onSelect={(val) => { setCity(val); setArea(""); setActiveField(null); }} 
-                />
-              </div>
-
-              <div className="relative flex-1">
-                <input 
-                  type="text"
-                  placeholder="Area (Type or Select)"
-                  disabled={!city}
-                  className="w-full p-4 bg-gray-50 border border-gray-100 rounded-xl outline-none text-gray-600 font-semibold text-sm disabled:opacity-50"
-                  value={area}
-                  onFocus={() => setActiveField('area')}
-                  onBlur={() => setTimeout(() => setActiveField(null), 200)}
-                  onChange={(e) => setArea(e.target.value)}
-                />
-                <SuggestionList 
-                  items={getAreaSuggestions()} 
-                  visible={activeField === 'area'} 
-                  onSelect={(val) => { setArea(val); setActiveField(null); }} 
+                  onSelect={(val) => { setCity(val); setActiveField(null); }} 
                 />
               </div>
             </div>
