@@ -28,11 +28,11 @@ export default function PromotionalBanner() {
   return (
     <div className="w-full max-w-7xl mx-auto p-4">
       <a 
-        href={ad.targetUrl} 
-        target="_blank" 
-        rel="sponsored noopener noreferrer"
-        className="block group relative overflow-hidden rounded-2xl shadow-xl transition-all hover:scale-[1.01]"
-      >
+  href={ad.targetUrl && ad.targetUrl.trim() !== "" ? ad.targetUrl : "#"} 
+  target="_blank" 
+  rel="sponsored noopener noreferrer"
+  className="block group relative overflow-hidden rounded-2xl shadow-xl transition-all hover:scale-[1.01]"
+>
         <img 
           src={ad.imageUrl} 
           alt="Sponsored Advertisement" 
