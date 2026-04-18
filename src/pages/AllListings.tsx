@@ -1,20 +1,20 @@
 import React, { useState, useEffect } from 'react';
-import { collection, query, where, orderBy, onSnapshot, doc, updateDoc, arrayUnion, arrayRemove } from 'firebase/firestore'; 
-import { db } from '../firebase'; 
-import { Ad } from '../types'; 
-import { useAuth } from '../contexts/AuthContext'; 
+import { collection, query, where, orderBy, onSnapshot, doc, updateDoc, arrayUnion, arrayRemove } from 'firebase/firestore';
+import { db } from '../firebase';
+import { Ad } from '../types';
+import { useAuth } from '../contexts/AuthContext';
 import AdCard from '../components/AdCard';
 import AdBanner from '../components/AdBanner'; // Added import
 import { useLanguage } from '../contexts/LanguageContext';
-import { toast } from 'sonner'; 
-import { ArrowLeft } from 'lucide-react'; 
+import { toast } from 'sonner';
+import { ArrowLeft } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
 export default function AllListings() {
   const [ads, setAds] = useState<Ad[]>([]);
   const [loading, setLoading] = useState(true);
   const [favorites, setFavorites] = useState<string[]>([]);
-  
+
   const { t } = useLanguage();
   const { user } = useAuth();
   const navigate = useNavigate();
@@ -26,14 +26,14 @@ export default function AllListings() {
 
   useEffect(() => {
     const adsQuery = query(
-      collection(db, 'ads'), 
-      where('status', '==', 'active'), 
+      collection(db, 'ads'),
+      where('status', '==', 'active'),
       orderBy('createdAt', 'desc')
     );
 
     const unsubscribe = onSnapshot(adsQuery, (snapshot) => {
       const fetchedAds = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Ad));
-      
+
       const sortedAds = fetchedAds.sort((a, b) => {
         if (a.isFeatured && !b.isFeatured) return -1;
         if (!a.isFeatured && b.isFeatured) return 1;
@@ -63,8 +63,8 @@ export default function AllListings() {
       <div className="max-w-5xl mx-auto px-4">
         {/* Header Section */}
         <div className="flex items-center gap-4 mb-10">
-          <button 
-            onClick={() => navigate(-1)} 
+          <button
+            onClick={() => navigate(-1)}
             className="p-2 hover:bg-gray-200 rounded-full transition-colors bg-white shadow-sm"
           >
             <ArrowLeft className="w-6 h-6 text-gray-700" />
@@ -86,18 +86,20 @@ export default function AllListings() {
             {ads.map((ad, index) => (
               <React.Fragment key={ad.id}>
                 <div className="w-full">
-                   <AdCard 
-                    ad={ad} 
-                    isFavorite={favorites.includes(ad.id)} 
-                    onToggleFavorite={() => toggleFavorite(ad.id)} 
-                    isHorizontal={true} 
+                  <AdCard
+                    ad={ad}
+                    isFavorite={favorites.includes(ad.id)}
+                    onToggleFavorite={() => toggleFavorite(ad.id)}
+                    isHorizontal={true}
                   />
                 </div>
 
                 {/* FIXED SIZE BANNER AFTER 5TH AD (index 4) */}
                 {index === 4 && (
-                  <div className="w-full h-32 md:h-40 overflow-hidden rounded-xl my-4 shadow-sm border border-gray-100 bg-white">
-                    {/* Unique location tag ensures different ads from home page */}
+                  /* 1. h-32 md:h-40 (128px/160px)
+                     2. flex items-center justify-center (Centers the image)
+                  */
+                  <div className="w-full h-32 md:h-40 overflow-hidden rounded-xl my-4 shadow-sm border border-gray-100 bg-white flex items-center justify-center">
                     <AdBanner location="listings_page" />
                   </div>
                 )}

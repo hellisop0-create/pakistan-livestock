@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { collection, query, where, limit, orderBy, onSnapshot, doc, updateDoc, arrayUnion, arrayRemove } from 'firebase/firestore'; 
 import { db } from '../firebase'; 
-import PromotionalBanner from '../components/PromotionalBanner';
 import { Ad } from '../types';
 import Hero from '../components/Hero';
 import { useAuth } from '../contexts/AuthContext'; 
@@ -11,13 +10,12 @@ import { useLanguage } from '../contexts/LanguageContext';
 import { motion } from 'motion/react';
 import { toast } from 'sonner'; 
 import { useNavigate } from 'react-router-dom';
+import PromotionalBanner from '../components/PromotionalBanner';
 
 export default function Home() {
   const [latestAds, setLatestAds] = useState<Ad[]>([]);
   const [loading, setLoading] = useState(true);
-  const [promoAd, setPromoAd] = useState<any>(null);
   const [favorites, setFavorites] = useState<string[]>([]);
-  
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCity, setSelectedCity] = useState("All Pakistan");
 
@@ -25,60 +23,41 @@ export default function Home() {
   const { user } = useAuth();
   const navigate = useNavigate();
 
-  // Sync favorites with user profile
   useEffect(() => {
     if (user?.favoriteAds) setFavorites(user.favoriteAds);
     else setFavorites([]);
   }, [user?.favoriteAds]);
 
-  // Fetch data from Firestore
   useEffect(() => {
-    // Replace your promoQuery with this simple one
-const promoQuery = query(collection(db, 'active_ads'), limit(1));
-    const unsubscribePromo = onSnapshot(promoQuery, (snapshot) => {
-      if (!snapshot.empty) setPromoAd({ id: snapshot.docs[0].id, ...snapshot.docs[0].data() });
-    });
-
-    const latestQuery = query(collection(db, 'ads'), where('status', '==', 'active'), orderBy('createdAt', 'desc'), limit(100));
+    const latestQuery = query(
+      collection(db, 'ads'), 
+      where('status', '==', 'active'), 
+      orderBy('createdAt', 'desc'), 
+      limit(100)
+    );
     const unsubscribeLatest = onSnapshot(latestQuery, (snapshot) => {
       setLatestAds(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Ad)));
       setLoading(false);
     });
-
-    return () => {
-      unsubscribePromo();
-      unsubscribeLatest();
-    };
+    return () => unsubscribeLatest();
   }, []);
 
-  // --- FILTERING LOGIC ---
-  const filteredLatestAds = latestAds
-    .filter((ad) => {
-      const normalizedSearch = searchQuery.toLowerCase().trim();
-      const titleMatch = (ad.title || "").toLowerCase().includes(normalizedSearch);
-      const descMatch = (ad.description || "").toLowerCase().includes(normalizedSearch);
-      
-      const matchesSearch = titleMatch || descMatch;
-      const matchesCity = selectedCity === "All Pakistan" || 
-                          (ad.city || "").toLowerCase() === selectedCity.toLowerCase();
-
-      return matchesSearch && matchesCity;
-    })
-    .sort((a, b) => {
-      // Priority 1: Featured ads always come first
-      if (a.isFeatured && !b.isFeatured) return -1;
-      if (!a.isFeatured && b.isFeatured) return 1;
-      // Priority 2: Keep the Firestore date order for items with same featured status
-      return 0;
-    });
+  const filteredLatestAds = latestAds.filter((ad) => {
+    const normalizedSearch = searchQuery.toLowerCase().trim();
+    const matchesSearch = (ad.title || "").toLowerCase().includes(normalizedSearch) || 
+                          (ad.description || "").toLowerCase().includes(normalizedSearch);
+    const matchesCity = selectedCity === "All Pakistan" || 
+                        (ad.city || "").toLowerCase() === selectedCity.toLowerCase();
+    return matchesSearch && matchesCity;
+  });
 
   const toggleFavorite = async (adId: string) => {
     if (!user) return toast.error('Please login to favorite ads');
     const userRef = doc(db, 'users', user.uid);
-    const isCurrentlyFavorite = favorites.includes(adId);
     try {
-      await updateDoc(userRef, { favoriteAds: isCurrentlyFavorite ? arrayRemove(adId) : arrayUnion(adId) });
-      if (!isCurrentlyFavorite) toast.success('Added to favorites');
+      await updateDoc(userRef, { 
+        favoriteAds: favorites.includes(adId) ? arrayRemove(adId) : arrayUnion(adId) 
+      });
     } catch (error) {
       toast.error('Failed to update favorites');
     }
@@ -90,17 +69,14 @@ const promoQuery = query(collection(db, 'active_ads'), limit(1));
       
       <CategoryGrid />
 
-      <PromotionalBanner />
-
-      {/* MAIN RESULTS SECTION */}
       <section id="results-section" className="py-12">
         <div className="max-w-7xl mx-auto px-4">
-          <div className="flex justify-between items-center mb-8">
+
+          <div className="flex justify-between items-center mb-8 mt-8">
             <h2 className="text-2xl font-bold text-gray-900">
               {searchQuery || selectedCity !== "All Pakistan" ? "Search Results" : t('latest')}
             </h2>
             
-            {/* View All Redirect Button */}
             {!searchQuery && selectedCity === "All Pakistan" && (
               <button 
                 type="button"
@@ -113,13 +89,12 @@ const promoQuery = query(collection(db, 'active_ads'), limit(1));
           </div>
           
           {loading ? (
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-6">
-              {[1, 2, 3, 4].map(i => <div key={i} className="bg-white rounded-xl h-80 animate-pulse border border-gray-200" />)}
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-6 animate-pulse">
+              {[1, 2, 3, 4].map(i => <div key={i} className="bg-white rounded-xl h-80 border border-gray-200" />)}
             </div>
           ) : (
             <>
               <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-6">
-                {/* Displaying first 8 ads as a preview */}
                 {filteredLatestAds.slice(0, 8).map(ad => (
                   <AdCard key={ad.id} ad={ad} isFavorite={favorites.includes(ad.id)} onToggleFavorite={() => toggleFavorite(ad.id)} />
                 ))}

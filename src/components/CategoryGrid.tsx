@@ -76,10 +76,11 @@ export default function CategoryGrid() {
           ))}
         </div>
       </div>
-      
+
       {/* FIXED SIZE AdBanner placed strictly under the category content */}
+      {/* Replace the bottom section of CategoryGrid.tsx with this */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-12">
-        <div className="w-full h-32 md:h-40 overflow-hidden rounded-xl shadow-sm border border-gray-100 bg-white">
+        <div className="w-full h-32 md:h-40 overflow-hidden rounded-xl shadow-sm border border-gray-100 bg-white flex">
           <AdBanner location="below_categories" />
         </div>
       </div>
