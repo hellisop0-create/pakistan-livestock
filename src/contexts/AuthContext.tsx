@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
+import { doc, onSnapshot, setDoc, getDoc } from 'firebase/firestore';
 import { 
   onAuthStateChanged, 
   signInWithPopup, 
@@ -87,14 +88,37 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const login = async () => {
-    const provider = new GoogleAuthProvider();
-    try {
-      await signInWithPopup(auth, provider);
-    } catch (error) {
-      console.error('Login error:', error);
-      throw error;
+  const provider = new GoogleAuthProvider();
+  try {
+    const result = await signInWithPopup(auth, provider);
+    const firebaseUser = result.user;
+
+    // --- NEW LOGIC: Save user to Firestore if they don't exist ---
+    const userDocRef = doc(db, 'users', firebaseUser.uid);
+    const docSnap = await getDoc(userDocRef);
+
+    if (!docSnap.exists()) {
+      const userEmail = firebaseUser.email?.toLowerCase().trim() || "";
+      const isHardcodedAdmin = ADMIN_EMAILS.includes(userEmail);
+
+      await setDoc(userDocRef, {
+        uid: firebaseUser.uid,
+        email: firebaseUser.email,
+        displayName: firebaseUser.displayName,
+        photoURL: firebaseUser.photoURL,
+        role: isHardcodedAdmin ? 'admin' : 'user', // Auto-assign role
+        favoriteAds: [],
+        createdAt: new Date().toISOString()
+      });
+      console.log("New user created in Firestore!");
     }
-  };
+    // -----------------------------------------------------------
+
+  } catch (error) {
+    console.error('Login error:', error);
+    throw error;
+  }
+};
 
   const logout = async () => {
     try {
